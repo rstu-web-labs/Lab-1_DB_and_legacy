@@ -1,0 +1,11 @@
+version: '2.24.3'
+
+services:
+  db_cars:
+    container_name: db_cars
+    ports: 
+      - "6060:5432"
+    environment:
+      - POSTGRES_PASSWORD=1234554321
+      - POSTGRES_USER=kirill
+    image: postgres:15.5
