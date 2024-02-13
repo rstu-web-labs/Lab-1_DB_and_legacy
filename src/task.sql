@@ -16,7 +16,7 @@ CREATE TABLE raw_data.sales (
 );
 
 -- Загрузка данных из CSV-файла
-COPY raw_data.sales (id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM 'C:\Users\avb97\Desktop\cars.csv' DELIMITER ',' CSV HEADER NULL 'null';
+COPY raw_data.sales (id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM 'C:\Users\Savelij\Documents\web\Lab-1_DB_and_legacy\src\cars.csv' DELIMITER ',' CSV HEADER NULL 'null';
 
 -- Создание схемы car_shop
 CREATE SCHEMA car_shop;
