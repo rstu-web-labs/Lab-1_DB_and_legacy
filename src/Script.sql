@@ -79,7 +79,7 @@ FROM raw_data.sales;
 INSERT into car_shop.spr_country  (country_name)
 select distinct brand_origin  -- все страны без повторов
 from raw_data.sales
-
+where brand_origin is not null
 
 ;
 INSERT INTO car_shop.brand (id_country, name_brand)
@@ -88,11 +88,6 @@ FROM car_shop.spr_country
  right JOIN raw_data.sales ON car_shop.spr_country.country_name = raw_data.sales.brand_origin
 GROUP BY split_part(raw_data.sales.auto, ' ', 1), car_shop.spr_country.id
 ;
-
-
-UPDATE car_shop.brand
-SET id_country  = 3
-WHERE id_country isnull ;
 
 
 INSERT INTO car_shop.model (id_brand , name_model, gasoline_consumption)
