@@ -3,7 +3,7 @@ create database life_on_wheels;
 create schema raw_data;
 
 CREATE TABLE raw_data.sales (
-    id INT,
+    id serial,
     auto VARCHAR(255),
     gasoline_consumption DECIMAL(10, 2),
     price DECIMAL(15, 2),
@@ -22,7 +22,7 @@ create schema car_shop;
 
 
 create table car_shop.cars (
-	cars_id int, 
+	cars_id serial, 
 	brand varchar(50) not null,
 	model varchar(50) not null, 
 	color varchar(50) not null, 
@@ -31,30 +31,29 @@ create table car_shop.cars (
 
 
 create table car_shop.auto_details (
-    auto_id int, 
-    cars_id int, 
+    auto_id serial, 
+    cars_id serial, 
     gasoline_consumption DECIMAL(10, 2),
     price DECIMAL(15, 2),
     date DATE,
-    constraint auto_id_key primary key(auto_id), 
-    constraint cars_id_foreign_key foreign key (cars_id) references car_shop.cars(cars_id)
+    constra auto_id_key primary key(auto_id), 
+    constra cars_id_foreign_key foreign key (cars_id) references car_shop.cars(cars_id)
 );
 
 create table car_shop.owners (
-	owner_id int, 
-	auto_id int, 
+	owner_id serial, 
+	auto_id serial, 
 	preson_name varchar(50), 
 	phone varchar(50), 
-	discount int, 
+	discount , 
 	brand_origin VARCHAR(50),
-	constraint owner_id_key primary key(owner_id),
-	constraint auto_id_foreign_key foreign key (auto_id) references car_shop.auto_details(auto_id)
+	constra owner_id_key primary key(owner_id),
+	constra auto_id_foreign_key foreign key (auto_id) references car_shop.auto_details(auto_id)
 )
 
 
-insert into car_shop.cars (cars_id,brand, model, color)
+insert into car_shop.cars (brand, model, color)
 select 
-	ROW_NUMBER() over (order by 1) as cars_id,
     SUBSTRING(auto, 1, POSITION(' ' in auto) - 1) as brand,
     SUBSTRING(auto, POSITION(' ' in auto) + 1, POSITION(',' in auto) - POSITION(' ' in auto) - 1) as model,
     SUBSTRING(auto, POSITION(',' in auto) + 2) as color
@@ -62,7 +61,6 @@ from raw_data.sales;
 
 insert into car_shop.auto_details 
 select 
-	ROW_NUMBER() over (order by 1) as auto_id ,
 	ROW_NUMBER() over (order by 1) as cars_id,
 	gasoline_consumption as gasoline_consumption,
 	price as price,
@@ -72,7 +70,6 @@ from raw_data.sales;
 
 insert into car_shop.owners  
 select 
-	ROW_NUMBER() over (order by 1) as owner_id ,
 	ROW_NUMBER() over (order by 1) as auto_id ,
 	person_name as preson_name,
 	phone as phone,
