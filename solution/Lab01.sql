@@ -32,7 +32,7 @@ create table car_shop.cars (
 
 create table car_shop.auto_details (
     auto_id serial, 
-    cars_id serial, 
+    cars_id int, 
     gasoline_consumption DECIMAL(10, 2),
     price DECIMAL(15, 2),
     date DATE,
@@ -42,7 +42,7 @@ create table car_shop.auto_details (
 
 create table car_shop.owners (
 	owner_id serial, 
-	auto_id serial, 
+	auto_id int, 
 	preson_name varchar(50), 
 	phone varchar(50), 
 	discount , 
