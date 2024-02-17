@@ -19,6 +19,7 @@ CREATE TABLE raw_data.sales (
 CREATE TABLE car_shop.brands (
     id SERIAL PRIMARY KEY, -- Уникальный идентификатор бренда
     name VARCHAR(50) NOT NULL -- Название бренда
+    brand_origin VARCHAR(50) -- Страна происхождения бренда
 );
 
 -- Таблица для хранения информации о моделях автомобилей, включая цвет
@@ -55,8 +56,8 @@ CREATE TABLE car_shop.purchases (
 COPY raw_data.sales FROM 'C:\Users\avb97\Desktop\cars.csv' DELIMITER ',' CSV HEADER NULL 'null';
 
 -- Загрузка данных в таблицу brands
-INSERT INTO car_shop.brands (name)
-SELECT DISTINCT substring(auto from 1 for position(' ' in auto) - 1)
+INSERT INTO car_shop.brands (name, brand_origin)
+SELECT DISTINCT substring(auto from 1 for position(' ' in auto) - 1), substring(auto from position('" ' in auto) + 2)
 FROM raw_data.sales;
 
 -- Загрузка данных в таблицу car_models
