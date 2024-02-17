@@ -17,79 +17,130 @@
 -- brand_origin - text -- Строковое значение, так как это название страны или производителя машины.
 
 -- Создание схемы и таблицы для сырых данных
+
 CREATE SCHEMA raw_data;
 CREATE TABLE raw_data.sales (
-    id integer PRIMARY KEY,
-    auto text NOT NULL,
-    gasoline_consumption numeric NOT NULL,
-    price numeric NOT NULL,
-    date date NOT NULL,
-    person_name text NOT NULL,
-    phone text NOT NULL,
-    discount integer NOT NULL,
-    brand_origin text
+   id integer PRIMARY KEY,
+   auto text NOT NULL,
+   gasoline_consumption numeric,
+   price numeric NOT NULL,
+   date date NOT NULL,
+   person_name text NOT NULL,
+   phone text NOT NULL,
+   discount integer NOT NULL,
+   brand_origin text
 );
-
-ALTER TABLE raw_data.sales
-ALTER COLUMN gasoline_consumption DROP NOT NULL;
 
 -- Загрузка сырых данных в таблицу sales с помощью команды COPY
 COPY raw_data.sales(id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM 'D:\cars.csv' DELIMITER ',' CSV NULL 'null' HEADER;
 
--- Анализ сырых данных и подготовка для нормализованных таблиц
--- Создание нормализованных таблиц в схеме car_shop
 CREATE SCHEMA car_shop;
+
 CREATE TABLE car_shop.brand (
-    id serial PRIMARY KEY,
-    brand_name text NOT NULL
+   id serial PRIMARY KEY,
+   brand_name text NOT NULL
 );
+
+CREATE TABLE car_shop.model (
+   id serial PRIMARY KEY,
+   brand_id integer,
+   model_name text NOT NULL
+);
+
+CREATE TABLE car_shop.color (
+   id serial PRIMARY KEY,
+   color_name text NOT NULL
+);
+
+CREATE TABLE car_shop.gasoline_consumption (
+   id serial PRIMARY KEY,
+   consumption_value numeric NOT NULL
+);
+
+CREATE TABLE car_shop.brand_origin (
+   id serial PRIMARY KEY,
+   brand_id integer,
+   brand_origin_name text NOT NULL,
+   FOREIGN KEY (brand_id) REFERENCES car_shop.brand(id)
+);
+
+CREATE TABLE car_shop.customer (
+   id serial PRIMARY KEY,
+   person_name text NOT NULL,
+   phone text NOT NULL
+);
+
 CREATE TABLE car_shop.car (
     id serial PRIMARY KEY,
-    brand_id integer REFERENCES car_shop.brand(id),
-    model_name text NOT NULL
+    brand_id integer,
+    model_id integer,
+    color_id integer,
+    gasoline_consumption_id integer,
+    FOREIGN KEY (brand_id) REFERENCES car_shop.brand(id),
+    FOREIGN KEY (model_id) REFERENCES car_shop.model(id),
+    FOREIGN KEY (color_id) REFERENCES car_shop.color(id),
+    FOREIGN KEY (gasoline_consumption_id) REFERENCES car_shop.gasoline_consumption(id)
 );
-CREATE TABLE car_shop.color (
-    id serial PRIMARY KEY,
-    color_name text NOT NULL
-);
-CREATE TABLE car_shop.customer (
-    id serial PRIMARY KEY,
-    person_name text NOT NULL,
-    phone text NOT NULL
-);
+
 CREATE TABLE car_shop.purchase (
     id serial PRIMARY KEY,
-    car_id integer REFERENCES car_shop.car(id),
-    customer_id integer REFERENCES car_shop.customer(id),
+    car_id integer,
+    customer_id integer,
     purchase_date date NOT NULL,
     price numeric NOT NULL,
-    discount integer NOT NULL
+    discount integer NOT NULL,
+    FOREIGN KEY (car_id) REFERENCES car_shop.car(id),
+    FOREIGN KEY (customer_id) REFERENCES car_shop.customer(id)
 );
 
--- Заполнение нормализованных таблиц данными
+-- Вставка данных в нормализованные таблицы
+-- Вставка данных из таблицы raw_data.sales в нормализованные таблицы
+
 INSERT INTO car_shop.brand (brand_name)
 SELECT DISTINCT split_part(auto, ' ', 1)
-FROM raw_data.sales;
+FROM raw_data.sales
+ON CONFLICT DO NOTHING;
 
-INSERT INTO car_shop.car (brand_id, model_name)
-SELECT b.id, trim(split_part(auto, ', ', 1))
-FROM raw_data.sales s
-JOIN car_shop.brand b ON b.brand_name = split_part(s.auto, ' ', 1);
+INSERT INTO car_shop.model (brand_id, model_name)
+SELECT car_shop.brand.id, trim(split_part(auto, ', ', 1))
+FROM raw_data.sales
+JOIN car_shop.brand ON car_shop.brand.brand_name = split_part(raw_data.sales.auto, ' ', 1)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO car_shop.color (color_name)
 SELECT DISTINCT trim(split_part(split_part(auto, ', ', 2),' ',1))
-FROM raw_data.sales;
+FROM raw_data.sales
+ON CONFLICT DO NOTHING;
+
+INSERT INTO car_shop.gasoline_consumption (consumption_value)
+SELECT DISTINCT raw_data.sales.gasoline_consumption
+FROM raw_data.sales
+WHERE raw_data.sales.gasoline_consumption IS NOT NULL
+ON CONFLICT DO NOTHING;
+
+INSERT INTO car_shop.brand_origin (brand_origin_name)
+SELECT DISTINCT raw_data.sales.brand_origin 
+FROM raw_data.sales
+WHERE raw_data.sales.brand_origin IS NOT NULL
+ON CONFLICT DO NOTHING;
 
 INSERT INTO car_shop.customer (person_name, phone)
-SELECT DISTINCT person_name, phone FROM raw_data.sales;
+SELECT DISTINCT raw_data.sales.person_name, raw_data.sales.phone 
+FROM raw_data.sales
+ON CONFLICT DO NOTHING;
+
+INSERT INTO car_shop.car (model_id)
+SELECT car_shop.model.id
+FROM raw_data.sales
+JOIN car_shop.model ON car_shop.model.brand_id = (SELECT id FROM car_shop.brand WHERE car_shop.brand.brand_name = split_part(raw_data.sales.auto, ' ', 1)) AND car_shop.model.model_name = trim(split_part(raw_data.sales.auto, ', ', 1))
+ON CONFLICT DO NOTHING;
 
 INSERT INTO car_shop.purchase (car_id, customer_id, purchase_date, price, discount)
-SELECT c.id, cu.id, s.date, s.price, s.discount
-FROM raw_data.sales s
-JOIN car_shop.brand b ON b.brand_name = split_part(s.auto, ' ', 1)
-JOIN car_shop.car c ON c.model_name = trim(split_part(s.auto, ', ', 1)) AND c.brand_id = b.id
-JOIN car_shop.color cl ON cl.color_name = trim(split_part(split_part(s.auto, ', ', 2),' ',1))
-JOIN car_shop.customer cu ON cu.person_name = s.person_name AND cu.phone = s.phone;
+SELECT car.id, customer.id, raw_data.sales.date, raw_data.sales.price, raw_data.sales.discount
+FROM raw_data.sales
+JOIN car_shop.model ON car_shop.model.brand_id = (SELECT id FROM car_shop.brand WHERE car_shop.brand.brand_name = split_part(raw_data.sales.auto, ' ', 1)) AND car_shop.model.model_name = trim(split_part(raw_data.sales.auto, ', ', 1))
+JOIN car_shop.car ON car_shop.car.model_id = car_shop.model.id
+JOIN car_shop.customer ON car_shop.customer.person_name = raw_data.sales.person_name AND car_shop.customer.phone = raw_data.sales.phone;
 
 --1
 SELECT 
