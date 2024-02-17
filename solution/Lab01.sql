@@ -36,8 +36,8 @@ create table car_shop.auto_details (
     gasoline_consumption DECIMAL(10, 2),
     price DECIMAL(15, 2),
     date DATE,
-    constra auto_id_key primary key(auto_id), 
-    constra cars_id_foreign_key foreign key (cars_id) references car_shop.cars(cars_id)
+    constraint auto_id_key primary key(auto_id), 
+    constraint cars_id_foreign_key foreign key (cars_id) references car_shop.cars(cars_id)
 );
 
 create table car_shop.owners (
@@ -45,10 +45,10 @@ create table car_shop.owners (
 	auto_id int, 
 	preson_name varchar(50), 
 	phone varchar(50), 
-	discount , 
+	discount int, 
 	brand_origin VARCHAR(50),
-	constra owner_id_key primary key(owner_id),
-	constra auto_id_foreign_key foreign key (auto_id) references car_shop.auto_details(auto_id)
+	constraint owner_id_key primary key(owner_id),
+	constraint auto_id_foreign_key foreign key (auto_id) references car_shop.auto_details(auto_id)
 )
 
 
