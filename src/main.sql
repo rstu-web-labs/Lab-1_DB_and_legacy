@@ -20,51 +20,52 @@ COPY raw_data.sales FROM 'C:\Code\back\Lab-1_DB_and_legacy\cars.csv' DELIMITER '
 -- Создание схемы car_shop
 CREATE SCHEMA car_shop;
 
--- 1. auto - разбиваем на бренд, название машины и цвет
-CREATE TABLE car_shop.car_details (
-    id SERIAL PRIMARY KEY,
-    brand VARCHAR(50) NOT NULL,
-    model VARCHAR(255) NOT NULL,
-    color VARCHAR(50) NOT NULL
-);
-
--- 2. brand_origin - выносим в отдельную таблицу brands
-CREATE TABLE car_shop.brands (
-    id SERIAL PRIMARY KEY,
+-- Создание таблицы cars
+CREATE TABLE car_shop.cars (
+    car_id SERIAL PRIMARY KEY,
     brand_name VARCHAR(50) NOT NULL,
-    origin_country VARCHAR(50)
+    model_name VARCHAR(255) NOT NULL,
+    color VARCHAR(50) NOT NULL,
+    brand_origin VARCHAR(50),
+    CONSTRAINT unique_car_details UNIQUE (brand_name, model_name, color)
 );
 
--- 3. sales - добавляем внешние ключи
-ALTER TABLE raw_data.sales
-ADD COLUMN car_details_id INT REFERENCES car_shop.car_details(id),
-ADD COLUMN brand_id INT REFERENCES car_shop.brands(id);
+-- Создание таблицы purchases
+CREATE TABLE car_shop.purchases (
+    purchase_id SERIAL PRIMARY KEY,
+    car_id INT REFERENCES car_shop.cars(car_id),
+    gasoline_consumption DECIMAL(4,2),
+    price DECIMAL(7,2) NOT NULL,
+    purchase_date DATE NOT NULL,
+    buyer_name VARCHAR(255) NOT NULL,
+    buyer_phone VARCHAR(20) NOT NULL,
+    discount INT NOT NULL,
+    CONSTRAINT valid_discount CHECK (discount >= 0 AND discount <= 100)
+);
 
--- Заполнение таблиц car_details и brands
-INSERT INTO car_shop.car_details (brand, model, color)
+-- Заполнение таблиц cars и purchases
+INSERT INTO car_shop.cars (brand_name, model_name, color, brand_origin)
 SELECT DISTINCT
-    SPLIT_PART(auto, ' ', 1) AS brand,
-    SPLIT_PART(auto, ' ', 2) AS model,
-    SPLIT_PART(auto, ',', 2) AS color
+    SPLIT_PART(auto, ' ', 1) AS brand_name,
+    SPLIT_PART(auto, ' ', 2) AS model_name,
+    SPLIT_PART(auto, ',', 2) AS color,
+    brand_origin
 FROM raw_data.sales;
 
--- Обновление внешних ключей в таблице sales
-UPDATE raw_data.sales AS s
-SET car_details_id = cd.id
-FROM car_shop.car_details AS cd
-WHERE SPLIT_PART(s.auto, ' ', 1) = cd.brand
-    AND SPLIT_PART(s.auto, ' ', 2) = cd.model
-    AND SPLIT_PART(s.auto, ',', 2) = cd.color;
-
-UPDATE raw_data.sales AS s
-SET brand_id = b.id
-FROM car_shop.brands AS b
-WHERE s.brand_origin = b.origin_country;
-
--- Удаление ненужных столбцов из таблицы sales
-ALTER TABLE raw_data.sales
-DROP COLUMN auto,
-DROP COLUMN brand_origin;
+INSERT INTO car_shop.purchases (car_id, gasoline_consumption, price, purchase_date, buyer_name, buyer_phone, discount)
+SELECT
+    c.car_id,
+    s.gasoline_consumption,
+    s.price,
+    s.date,
+    s.person,
+    s.phone,
+    s.discount
+FROM raw_data.sales AS s
+JOIN car_shop.cars AS c
+ON SPLIT_PART(s.auto, ' ', 1) = c.brand_name
+    AND SPLIT_PART(s.auto, ' ', 2) = c.model_name
+    AND SPLIT_PART(s.auto, ',', 2) = c.color;
 
 
 Задание №1 
