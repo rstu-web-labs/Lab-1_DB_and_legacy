@@ -155,64 +155,6 @@ join car_shop.model_car mc on mc.id_model = c.id_model
 join car_shop.brand b on b.id_brand = mc.id_brand
 group by b.name_brand, year
 order by brand_name, year asc;
---- вывод:
-brand_name year price_avg
-Audi	2015	22916.25
-Audi	2016	24352.11
-Audi	2017	23999.71
-Audi	2018	27624.28
-Audi	2019	29769.92
-Audi	2020	20721.39
-Audi	2021	26392.70
-Audi	2022	24959.42
-BMW	2015	32233.01
-BMW	2016	39340.13
-BMW	2017	39732.89
-BMW	2018	49208.71
-BMW	2019	50566.10
-BMW	2020	35635.37
-BMW	2021	41729.51
-BMW	2022	43771.15
-Hyundai	2015	29507.85
-Hyundai	2016	31478.32
-Hyundai	2017	30657.53
-Hyundai	2018	38453.55
-Hyundai	2019	46019.59
-Hyundai	2020	29556.56
-Hyundai	2021	38138.73
-Hyundai	2022	34661.25
-Kia	2015	18511.28
-Kia	2016	21261.24
-Kia	2017	20653.25
-Kia	2018	26570.69
-Kia	2019	29145.34
-Kia	2020	21572.93
-Kia	2021	23141.44
-Kia	2022	25629.19
-Lada	2015	13371.78
-Lada	2016	15135.72
-Lada	2017	14793.19
-Lada	2018	16625.01
-Lada	2019	18126.99
-Lada	2020	13209.14
-Lada	2021	14427.54
-Lada	2022	15525.35
-Porsche	2015	47773.73
-Porsche	2016	57711.60
-Porsche	2017	60424.54
-Porsche	2018	75175.51
-Porsche	2019	80885.01
-Porsche	2020	51828.80
-Porsche	2021	68421.81
-Porsche	2022	60978.89
-Tesla	2015	41302.83
-Tesla	2016	43283.91
-Tesla	2017	42953.84
-Tesla	2018	54885.39
-Tesla	2019	58383.72
-Tesla	2020	37922.41
-Tesla	2021	46284.03
-Tesla	2022	43069.42
 
 --- Задание №3
 Посчитайте среднюю цену всех автомобилей с разбивкой по месяцам в 2022 году с учётом скидки. 
@@ -226,21 +168,6 @@ from car_shop.purchases p
 where extract(year from p.date_purch) = 2022
 group by extract(month from p.date_purch), extract(year from p.date_purch)
 order by extract(month from p.date_purch) asc;
---- вывод:
-month   year   price_avg
-1	2022	37388.15
-2	2022	35576.02
-3	2022	45521.52
-4	2022	31545.32
-5	2022	32791.81
-6	2022	29305.94
-7	2022	30202.75
-8	2022	37881.63
-9	2022	29794.27
-10	2022	40999.05
-11	2022	22819.33
-12	2022	32969.64
-
 
 --- Задание №4
 Используя функцию STRING_AGG, напишите запрос, который выведет 
@@ -259,19 +186,6 @@ join car_shop.model_car mc on mc.id_model = c.id_model
 join car_shop.brand b on b.id_brand = mc.id_brand
 group by p.id_person, p.name_person
 order by p.name_person asc;
---- вывод:
-	person 		cars
-1	Aaron Montgomery	BMW M3
-2	Adam Friedman	Lada Kalina
-3	Adam Nicholson	Porsche 911
-4	Adam Ryan	Hyundai Sonata
-5	Adam Stevens	Hyundai Elantra
-6	Adrian Cabrera	Audi S3, Audi S3
-7	Adrienne Campbell	Tesla Model Y
-...	...	...
-892	Zachary Long	Audi A3
-893	Zachary Montes	BMW F80, Tesla Model X
-894	Zachary Robinson	Kia Rio
 
 --- Задание №5
 Напишите запрос, который вернёт самую большую и самую маленькую цену продажи автомобиля 
@@ -300,6 +214,3 @@ Russia	25924.80	6198.60
 --- скрипт
 select count(*) as persons_from_usa_count from car_shop.people 
 where phone like('+1%');
---- вывод:
-persons_from_usa_count
-131
