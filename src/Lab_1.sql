@@ -1,7 +1,7 @@
 -- Создание схемы для сырых данных
 CREATE SCHEMA raw_data;
 
-
+-- ПЕРЕДЕЛАЛ х2
 -- Создание тб для сырых данных
 CREATE TABLE raw_data.sales (
     id smallint PRIMARY KEY,
@@ -9,13 +9,13 @@ CREATE TABLE raw_data.sales (
     gasoline_consumption numeric(4,2) CHECK (gasoline_consumption < 100),
     price numeric(50, 20) NOT NULL,
     person_name varchar(55) NOT NULL,
+    date DATE NOT NULL,
     phone varchar(55),
     discount numeric(4,2) CHECK (discount >= 0),
     brand_origin varchar(55) 
-        CHECK (brand_origin IN ('Russia', 'Germany', 'South Korea', 'USA'))
 );
 
-
+"E:\cars.csv"
 -- Заполнение тб сырыми данными
 COPY raw_data.sales 
 FROM 'D:\cars.csv' 
@@ -25,22 +25,22 @@ WITH CSV HEADER NULL 'null' DELIMITER ',';
 -- Создание схемы для нормализованной БД
 CREATE SCHEMA car_shop;
 
-
+-- ПЕРЕДЕЛАЛ х1
 -- Создание тб стран
 CREATE TABLE car_shop.country (
     id_country SERIAL PRIMARY KEY,
-    brand_origin varchar(55)
+    brand_origin varchar(55) UNIQUE
 );
 
 -- Заполнение тб стран
 INSERT INTO car_shop.country (brand_origin)
 SELECT DISTINCT brand_origin FROM raw_data.sales;
 
-
+-- ПЕРЕДЕЛАЛ х1
 -- Создание тб цветов
 CREATE TABLE car_shop.color (
     id_color SERIAL PRIMARY KEY,
-    name_color varchar(55)
+    name_color varchar(55) UNIQUE
 );
 
 -- Заполнение тб цветов
@@ -76,15 +76,16 @@ COALESCE(c.id_country, (SELECT id_country FROM car_shop.country WHERE brand_orig
 FROM raw_data.sales s
 LEFT JOIN car_shop.country c ON c.brand_origin = s.brand_origin;
 
-
+-- ПЕРЕДЕЛАЛ х2
 -- Создание тб моделей машин
 CREATE TABLE car_shop.model_car (
     id_model SERIAL PRIMARY KEY,
     id_brand INT,
     name_model varchar(55),
-    gasoline_consumption numeric(4,2) CHECK (gasoline_consumption < 100),
+    gasoline_consumption numeric(4,2) CHECK (gasoline_consumption BETWEEN 0 and 100),
     CONSTRAINT fk_constraint_brand FOREIGN KEY (id_brand)
     REFERENCES car_shop.brand(id_brand)
+    ON DELETE CASCADE
 );
 
 -- Заполнение тб моделей машин
@@ -144,11 +145,9 @@ JOIN car_shop.cars c ON c.id_model = (
 JOIN car_shop.color col ON col.name_color = SUBSTRING(auto, POSITION(',' IN auto) + 2)
 WHERE c.id_color = col.id_color;
 
+------------------------------------------------------------------------------
 
-============================================================================
-
-
--- Задание №1
+-- ЗАДАЧА 1
 
 SELECT 
     (COUNT(*) FILTER (WHERE gasoline_consumption IS NULL)::float / COUNT(*)::float) * 100 AS percentage
@@ -156,8 +155,7 @@ FROM
     car_shop.model_car;
 
 
-
--- Задание №2
+-- ЗАДАЧА 2
 
 SELECT 
     b.name_brand, 
@@ -177,8 +175,7 @@ ORDER BY
     name_brand, year;
 
 
-
--- Задание №3
+-- ЗАДАЧА 3
 
 SELECT 
     EXTRACT(MONTH FROM p.date_purch) AS month,
@@ -194,8 +191,7 @@ ORDER BY
     month ASC;
 
 
-
--- Задание №4
+-- ЗАДАЧА 4
 
 SELECT 
     p.name_person AS person,
@@ -216,8 +212,7 @@ ORDER BY
     person;
 
 
-
--- Задание №5
+-- ЗАДАЧА 5
 
 SELECT 
     co.brand_origin, 
@@ -234,11 +229,12 @@ JOIN
 JOIN 
     car_shop.country co USING(id_country)
 GROUP BY 
-    co.brand_origin;
+    co.brand_origin
+ORDER BY 
+    max_price DESC;
 
 
-
--- Задание №6
+-- ЗАДАЧА 6
 
 SELECT 
     COUNT(*) AS usa_persons_count
@@ -246,5 +242,4 @@ FROM
     car_shop.people 
 WHERE 
     phone LIKE '+1%';
-
 
