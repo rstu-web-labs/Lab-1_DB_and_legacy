@@ -15,7 +15,7 @@ CREATE TABLE raw_data.sales (
     brand_origin varchar(55) 
 );
 
-"E:\cars.csv"
+
 -- Заполнение тб сырыми данными
 COPY raw_data.sales 
 FROM 'D:\cars.csv' 
