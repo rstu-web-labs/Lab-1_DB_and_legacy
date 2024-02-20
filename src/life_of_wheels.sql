@@ -22,7 +22,7 @@ COPY raw_data.sales FROM 'C:/web/cars.csv' DELIMITER ',' CSV HEADER
    
 CREATE TABLE car_shop.origins( -- таблица производителей авто
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255)-- имя символьное значение
+    name VARCHAR(255) unique -- имя символьное уникальное
 );
 
 INSERT INTO car_shop.origins (name)
@@ -31,7 +31,7 @@ FROM raw_data.sales;
 
 CREATE TABLE car_shop.colors ( -- таблица цветов авто
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL-- имя символьное значение
+    name VARCHAR(255) NOT null UNIQUE-- имя символьное уникальное
 );
 
 INSERT INTO car_shop.colors (name)
@@ -41,7 +41,7 @@ FROM raw_data.sales;
 CREATE TABLE car_shop.brands ( --таблица брендов
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL, -- имя символьное значение
-    origin_id INTEGER REFERENCES car_shop.origins(id) ON DELETE cascade 
+    origin_id INTEGER REFERENCES car_shop.origins(id) ON DELETE RESTRICT
 );
 
 INSERT INTO car_shop.brands (name, origin_id)
@@ -166,16 +166,20 @@ ORDER BY
 -- 4.Используя функцию STRING_AGG, напишите запрос, который выведет список купленных машин у каждого пользователя через запятую. 
 -- Пользователь может купить две одинаковые машины. Название машины покажите полное, с названием бренда. 
 -- Отсортируйте по имени пользователя в восходящем порядке.
-SELECT
-    b.name AS user_name,
-    STRING_AGG(distinct CONCAT(br.name, ' ', m.name), ', ') AS purchased_cars
-FROM car_shop.sales_report sr
-JOIN car_shop.auto a ON sr.auto_id = a.id
-JOIN car_shop.buyers b ON sr.person_id = b.id
-JOIN car_shop.models m ON a.model_id = m.id
-JOIN car_shop.brands br ON m.brand_id = br.id
-GROUP BY b.name
-ORDER BY b.name ASC;
+SELECT 
+    person,
+    STRING_AGG(CONCAT(brand_name, ' ', model_name, ', ', color), ', ') AS purchased_cars
+FROM (
+    SELECT 
+        r.person,
+        split_part(auto, ' ', 1) AS brand_name,
+        substring(auto FROM '\s+(.*)\s+[^,]+') AS model_name,
+        split_part(substring(auto FROM '\s+[^,]+$'), ',', 1) AS color
+    FROM raw_data.sales r
+) AS subquery
+GROUP BY person
+ORDER BY person ASC;
+
   
 --5.Напишите запрос, который вернёт самую большую и самую маленькую цену продажи автомобиля с разбивкой по стране без учёта скидки. 
 --Цена в колонке price дана с учётом скидки.
