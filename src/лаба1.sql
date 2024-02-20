@@ -18,7 +18,7 @@ CREATE TABLE raw_data.sales (
 -- Таблица для хранения информации о брендах автомобилей
 CREATE TABLE car_shop.brands (
     id SERIAL PRIMARY KEY, -- Уникальный идентификатор бренда
-    name VARCHAR(50) NOT NULL -- Название бренда
+    name VARCHAR(50) NOT NULL, -- Название бренда
     brand_origin VARCHAR(50) -- Страна происхождения бренда
 );
 
