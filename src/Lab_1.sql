@@ -8,8 +8,8 @@ CREATE TABLE raw_data.sales (
     auto varchar(55) NOT NULL,
     gasoline_consumption numeric(4,2) CHECK (gasoline_consumption < 100),
     price numeric(50, 20) NOT NULL,
-    person_name varchar(55) NOT NULL,
     date DATE NOT NULL,
+    person_name varchar(55) NOT NULL,
     phone varchar(55),
     discount numeric(4,2) CHECK (discount >= 0),
     brand_origin varchar(55) 
@@ -18,7 +18,7 @@ CREATE TABLE raw_data.sales (
 
 -- Заполнение тб сырыми данными
 COPY raw_data.sales 
-FROM 'D:\cars.csv' 
+FROM '/cars.csv' 
 WITH CSV HEADER NULL 'null' DELIMITER ',';
 
 
