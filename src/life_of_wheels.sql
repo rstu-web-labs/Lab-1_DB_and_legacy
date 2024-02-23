@@ -22,7 +22,7 @@ COPY raw_data.sales FROM 'C:/web/cars.csv' DELIMITER ',' CSV HEADER
    
 CREATE TABLE car_shop.origins( -- таблица производителей авто
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) unique -- имя символьное уникальное
+    name VARCHAR(255) NOT NULL UNIQUE -- имя символьное уникальное
 );
 
 INSERT INTO car_shop.origins (name)
@@ -31,7 +31,7 @@ FROM raw_data.sales;
 
 CREATE TABLE car_shop.colors ( -- таблица цветов авто
     id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT null UNIQUE-- имя символьное уникальное
+    name VARCHAR(255) NOT NULL unique -- имя символьное уникальное
 );
 
 INSERT INTO car_shop.colors (name)
@@ -100,7 +100,7 @@ WHERE phone NOT IN (SELECT phone FROM car_shop.buyers);
 
 CREATE TABLE car_shop.sales_report( --таблица отчета по продажам
     id SERIAL PRIMARY KEY,
-    auto_id INTEGER REFERENCES car_shop.auto(id) ON DELETE CASCADE, 
+    auto_id INTEGER REFERENCES car_shop.auto(id) ON DELETE RESTRICT, 
     person_id INTEGER REFERENCES car_shop.buyers(id) ON DELETE CASCADE,
     price DECIMAL(10,2) NOT NULL,
     date DATE NOT NULL,
@@ -183,18 +183,23 @@ ORDER BY person ASC;
   
 --5.Напишите запрос, который вернёт самую большую и самую маленькую цену продажи автомобиля с разбивкой по стране без учёта скидки. 
 --Цена в колонке price дана с учётом скидки.
-SELECT
-   	o.name AS country,
-    MAX(p.price + (p.price * p.discount  / 100))  AS max_sale_price,
-    MIN(p.price + (p.price * p.discount / 100)) AS min_sale_price
-FROM
-    car_shop.sales_report p
-JOIN
-    car_shop.auto a ON p.auto_id = a.id
-JOIN
-    car_shop.origins o ON a.origin_id = o.id
-GROUP BY o.name;
 
+SELECT
+    o.name AS country,
+    MIN(sr.price + (sr.price * sr.discount / 100)) AS min_price,
+    MAX(sr.price + (sr.price * sr.discount / 100)) AS max_price
+FROM
+    car_shop.sales_report sr
+JOIN
+    car_shop.auto a ON sr.auto_id = a.id
+JOIN
+    car_shop.models m ON a.model_id = m.id
+JOIN
+    car_shop.brands b ON a.brand_id = b.id
+JOIN
+    car_shop.origins o ON b.origin_id = o.id
+GROUP BY
+    o.name;
 -- 6.Напишите запрос, который покажет количество всех пользователей из США. 
 -- Это пользователи, у которых номер телефона начинается на +1.
 SELECT
