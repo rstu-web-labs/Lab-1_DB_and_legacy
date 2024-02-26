@@ -13,61 +13,61 @@ create table raw_data.sales (
 	phone VARCHAR(50),
 	discount numeric,
 	brand_origin VARCHAR(50)
-)
+);
 
-COPY raw_data.sales(id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM '/home/user/Загрузки/cars.csv' DELIMITER ',' CSV HEADER NULL 'null';
+COPY raw_data.sales(id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM '/home/cars.csv' DELIMITER ',' CSV HEADER NULL 'null';
 
 
-select * from raw_data.sales s ;
+--select * from raw_data.sales s ;
 
 create schema car_shop;
 
 create table car_shop.country (
 	id serial primary key,
-	brand_origin varchar(50) not null unique
-)
+	brand_origin varchar(60) not null unique
+);
 
 
 create table car_shop.brand (
 	id serial primary key,
 	id_country int,
 	brand varchar(50) not null unique,
-	foreign key (id_country) references car_shop.country(id) on delete cascade
-)
+	foreign key (id_country) references car_shop.country(id) on delete restrict
+);
 
 create table car_shop.model (
 	id serial primary key,
 	model varchar(50) not null unique
-)
+);
 
 create table car_shop.color (
 	id serial primary key,
 	color varchar(50) not null unique
-)
+);
 
 create table car_shop.cars (
 	id serial primary key,
-	id_brand int references car_shop.brand(id) on delete cascade,
-	id_model int references car_shop.model(id) on delete cascade, 
-	id_color int references car_shop.color(id) on delete cascade,
+	id_brand int references car_shop.brand(id) on delete restrict,
+	id_model int references car_shop.model(id) on delete restrict, 
+	id_color int references car_shop.color(id) on delete restrict,
 	gasoline_consumption numeric check (gasoline_consumption > 0 and gasoline_consumption<100 )
-)
+);
 
 create table car_shop.clients(
 	id serial primary key,
 	name varchar(30) not null,
 	surname varchar(30) not null,
 	phone varchar(50) not null unique
-)
+);
 
 create table car_shop.sales (
 	id serial primary key,
-	id_car int references car_shop.cars(id) on delete cascade,
-	id_buyer int references car_shop.clients(id) on delete cascade,
+	id_car int references car_shop.cars(id) on delete restrict,
+	id_buyer int references car_shop.clients(id) on delete restrict,
 	price numeric not null,
-	discount numeric,
+	discount numeric check(discount between 0 and 100),
 	date date not null
-)
+);
 
 
 -- заполнение данными новых таблиц
@@ -78,7 +78,7 @@ where brand_origin is not null
 group by brand_origin ;
 
 
-select c.brand_origin  from car_shop.country c ;
+--select c.brand_origin  from car_shop.country c ;
 
 
 insert into car_shop.brand(id_country, brand)
@@ -92,7 +92,7 @@ from raw_data.sales s
 left join car_shop.country c on c.brand_origin = s.brand_origin or s.brand_origin is null
 group by c.id, brand, s.brand_origin, s.auto;
 
-select * from car_shop.brand b ;
+--select * from car_shop.brand b ;
 
 
 insert into car_shop.model(model)
@@ -100,14 +100,14 @@ select SUBSTRING(auto, POSITION(' ' in auto) + 1, POSITION(',' in auto) - POSITI
 from raw_data.sales 
 group by model;
 
-select * from car_shop.model m ;
+--select * from car_shop.model m ;
 
 insert into car_shop.color(color)
 select SUBSTRING(auto, POSITION(',' in auto) + 2) as color
 from raw_data.sales 
 group by color;
 
-select * from car_shop.color c ;
+--select * from car_shop.color c ;
 
 
 insert into car_shop.cars (id_brand, id_model, id_color, gasoline_consumption)
@@ -121,7 +121,7 @@ left join car_shop.color c
 on c.color = substring(s.auto, position(',' in s.auto) + 2)
 group by b.id,  m.id, c.id, s.gasoline_consumption ;
 
-select * from car_shop.cars c  ;
+--select * from car_shop.cars c  ;
 
 insert into car_shop.clients (name, surname, phone)
 select 
@@ -134,7 +134,7 @@ substring(s.person_name, 1, position (' ' in s.person_name) - 1),
 substring(s.person_name, position (' ' in s.person_name) + 1),
 s.phone ;
 
-select *  from car_shop.clients cl ;
+--select *  from car_shop.clients cl ;
 
 
 insert into car_shop.sales(id_car, id_buyer, price, discount, "date")
@@ -146,9 +146,8 @@ inner join car_shop.cars c on
 	substring(s.auto, position(',' in s.auto) + 2) = (select color from car_shop.color where id = c.id_color) 
 inner join car_shop.clients c3 on
 	c3.phone = s.phone and c3."name"  = substring(s.person_name, 1, position (' ' in s.person_name) - 1) and
-	c3.surname = substring(s.person_name, position (' ' in s.person_name) + 1)
+	c3.surname = substring(s.person_name, position (' ' in s.person_name) + 1);
 	
-select * from car_shop.sales;
 
 
 --Напишите запрос, который выведет процент моделей машин, у которых нет параметра gasoline_consumption.
@@ -196,7 +195,7 @@ join car_shop.cars c2 on c2.id  = s.id_car
 join car_shop.brand b on b.id  = c2.id_brand 
 join car_shop.model m on m.id  = c2.id_model 
 group by c."name",c.surname 
-order by c."name",c.surname 
+order by c."name",c.surname;
 
 
 --Напишите запрос, который вернёт самую большую и самую маленькую цену продажи автомобиля с разбивкой по стране без учёта скидки. 
@@ -219,5 +218,3 @@ order by c2.brand_origin;
 select count(*) as persons_from_usa_count 
 from car_shop.clients 
 where phone like '+1%';
-
-
