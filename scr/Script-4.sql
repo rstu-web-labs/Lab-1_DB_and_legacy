@@ -35,7 +35,8 @@ CREATE TABLE car_shop.brand (
     id serial PRIMARY KEY,
     id_country INT,
     name_brand VARCHAR(50) NOT NULL CHECK (name_brand NOT LIKE ''),
-    FOREIGN KEY (id_country) REFERENCES car_shop.spr_country(id)
+    UNIQUE (name_brand),
+    FOREIGN KEY (id_country) REFERENCES car_shop.spr_country(id) ON DELETE CASCADE
 );
 
 CREATE TABLE car_shop.model (
@@ -43,7 +44,7 @@ CREATE TABLE car_shop.model (
     id_brand INT,
     name_model VARCHAR(50) NOT NULL,
     gasoline_consumption DECIMAL(3,1) CHECK (gasoline_consumption >= 0 AND gasoline_consumption <= 99.9) DEFAULT NULL,
-    FOREIGN KEY (id_brand) REFERENCES car_shop.brand(id)
+    FOREIGN KEY (id_brand) REFERENCES car_shop.brand(id) ON DELETE CASCADE
 );
 
 CREATE TABLE car_shop.sett (
@@ -57,7 +58,7 @@ CREATE TABLE car_shop.sale (
     id serial PRIMARY KEY,
     id_person INT,
     id_sett INT,
-    price DECIMAL(19,12) NOT NULL CHECK (price >= 0 AND price < 9999999.999999999999),
+    price DECIMAL(19,12) NOT NULL CHECK (price >= 0 AND price < 9999999.99),
     discount DECIMAL(4,2) CHECK (discount >= 0 AND discount <= 99.99),
     date DATE,
     FOREIGN KEY (id_sett) REFERENCES car_shop.sett(id),
