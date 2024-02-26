@@ -1,10 +1,10 @@
 create schema raw_data;
 
-create table sales (
+create table raw_data.sales (
   id SERIAL primary key not null,
   auto varchar(200) not null,
   gasoline_consumption DECIMAL(3,1),
-  price float not null,
+  price DECIMAL(15, 8) not null,
   data date not null,
   person_name VARCHAR(200) not null,
   phone VARCHAR(20) not null,
@@ -12,7 +12,7 @@ create table sales (
   brand_origin VARCHAR(60)
 );
 
-copy raw_data.sales (id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM 'C:\Users\Vyacheslav\Загрузки\cars.csv' DELIMITER ',' CSV HEADER NULL 'null';
+copy raw_data.sales (id, auto, gasoline_consumption, price, data, person_name, phone, discount, brand_origin) FROM 'C:\Users\Vyacheslav\Загрузки\cars.csv' DELIMITER ',' CSV HEADER NULL 'null';
 
 
 --Создание таблиц--
@@ -52,7 +52,7 @@ create table car_shop.set(
        id_model int references car_shop.model(id) on delete restrict,
        id_brand int references car_shop.brand(id) on delete restrict,
        id_color int references car_shop.color(id) on delete restrict,
-       gasoline_consumption float check(gasoline_consumption between 0 and 99)
+       gasoline_consumption DECIMAL(3,1) check(gasoline_consumption between 0 and 99)
 );
 
 create table car_shop.sale(
@@ -61,7 +61,7 @@ create table car_shop.sale(
        id_set int references car_shop.set(id) on delete restrict,
        price numeric not null,
        data date not null,
-       discount float not null
+       discount DECIMAL(5,2) not null
 );
 
 
@@ -121,8 +121,6 @@ left join car_shop.set on concat((select brand from car_shop.brand where brand.i
 left join car_shop.client on client.name = raw_data.sales.person_name
 group by set.id, client.id, raw_data.sales.price, raw_data.sales.discount, raw_data.sales.data;
 
-
-TRUNCATE TABLE car_shop.sale;
 --Запросы--
 
 --№1
