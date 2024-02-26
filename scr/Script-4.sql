@@ -44,14 +44,14 @@ CREATE TABLE car_shop.model (
     id_brand INT,
     name_model VARCHAR(50) NOT NULL,
     gasoline_consumption DECIMAL(3,1) CHECK (gasoline_consumption >= 0 AND gasoline_consumption <= 99.9) DEFAULT NULL,
-    FOREIGN KEY (id_brand) REFERENCES car_shop.brand(id) ON DELETE CASCADE
+    FOREIGN KEY (id_brand) REFERENCES car_shop.brand(id)
 );
 
 CREATE TABLE car_shop.sett (
     id serial PRIMARY KEY,
     id_model INT,
     color VARCHAR(50) NOT NULL,
-    FOREIGN KEY (id_model) REFERENCES car_shop.model(id)
+    FOREIGN KEY (id_model) REFERENCES car_shop.model(id) ON DELETE CASCADE
 );
 
 CREATE TABLE car_shop.sale (
