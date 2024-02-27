@@ -15,21 +15,21 @@ CREATE TABLE raw_data.sales (
     brand_origin VARCHAR(50) -- Страна происхождения бренда
 );
 
-COPY raw_data.sales(id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM 'E:\web\cars.csv' WITH CSV header NULL 'null';
+COPY raw_data.sales(id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM 'D:\cars.csv' WITH CSV header NULL 'null';
 
 CREATE SCHEMA car_shop;
 
 CREATE TABLE car_shop.brands (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL 
-    brand_origin VARCHAR(50) 
+    name VARCHAR(50) NOT null, 
+    brand_origin VARCHAR(100) unique 
 );
 
 CREATE TABLE car_shop.car_models (
     id SERIAL PRIMARY KEY, 
-    brand_id INTEGER REFERENCES car_shop.brands(id), 
+    brand_id INTEGER REFERENCES car_shop.brands(id) on delete cascade, 
     name VARCHAR(100) NOT NULL,
-    color VARCHAR(50) 
+    color VARCHAR(50) unique
 );
 
 CREATE TABLE car_shop.customers (
@@ -40,9 +40,9 @@ CREATE TABLE car_shop.customers (
 
 CREATE TABLE car_shop.purchases (
     id SERIAL PRIMARY KEY,
-    sales_id INTEGER UNIQUE REFERENCES raw_data.sales(id), 
-    customer_id INTEGER REFERENCES car_shop.customers(id), 
-    discount SMALLINT, 
+    sales_id INTEGER UNIQUE REFERENCES raw_data.sales(id) on delete cascade, 
+    customer_id INTEGER REFERENCES car_shop.customers(id) on delete cascade, 
+    discount smallint unique, 
     date DATE 
 );
 
@@ -139,5 +139,4 @@ FROM
     car_shop.customers
 WHERE
     phone LIKE '+1%';
-
 
