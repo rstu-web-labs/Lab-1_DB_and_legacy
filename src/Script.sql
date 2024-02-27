@@ -33,7 +33,6 @@ CREATE TABLE car_shop.colors (
     color_name VARCHAR(50) UNIQUE NOT NULL
 );
 
--- Добавляем уникальные цвета из raw_data.sales в таблицу car_shop.colors
 INSERT INTO car_shop.colors (color_name)
 SELECT DISTINCT TRIM(SPLIT_PART(auto, ',', 2))
 FROM raw_data.sales
@@ -45,8 +44,8 @@ CREATE TABLE car_shop.cars (
     color_id INT,
     model VARCHAR(255),
     gasoline_consumption DECIMAL(5,2),
-    CONSTRAINT fk_brand FOREIGN KEY (brand_id) REFERENCES car_shop.brands(brand_id),
-    CONSTRAINT fk_color FOREIGN KEY (color_id) REFERENCES car_shop.colors(color_id)
+    CONSTRAINT fk_brand FOREIGN KEY (brand_id) REFERENCES car_shop.brands(brand_id) ON DELETE CASCADE,
+    CONSTRAINT fk_color FOREIGN KEY (color_id) REFERENCES car_shop.colors(color_id) ON DELETE CASCADE
 );
 
 INSERT INTO car_shop.cars (brand_id, color_id, model, gasoline_consumption)
@@ -131,6 +130,7 @@ GROUP BY
 ORDER BY 
     b.brand_name, year;
 
+   
 --2015 22к что-то там
 
 -- Задание №3
