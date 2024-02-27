@@ -103,7 +103,7 @@ FROM raw_data.sales;
 -- 2 --
 -- Для этого задания потребовались отдельные таблицы, они были созданы и заполнены --
 
-create table car_shop.task_2(
+create table car_shop.cars(
 id serial primary key,
 id_model int references car_shop.model(id) on delete restrict,
 id_brand int references car_shop.brand(id) on delete restrict,
@@ -111,16 +111,16 @@ id_color int references car_shop.color(id) on delete restrict,
 gasoline_consumption float check(gasoline_consumption between 0 and 99)
 );
 
-create table car_shop.extra(
+create table car_shop.sales(
 id serial primary key,
 id_client int references car_shop.client(id) on delete restrict,
-id_set int references car_shop.task_2(id) on delete restrict,
+id_set int references car_shop.cars(id) on delete restrict,
 price numeric not null,
 datе date not null,
 discount float not null
 );
 
-insert into car_shop.task_2 (id_brand, id_model, id_color, gasoline_consumption)
+insert into car_shop.cars (id_brand, id_model, id_color, gasoline_consumption)
 select car_shop.brand.id as b,
 car_shop.model.id as m,
 car_shop.color.id as c,
@@ -131,28 +131,28 @@ left join car_shop.model on model.model = substring(raw_data.sales.auto from pos
 left join car_shop.color on color.color = substring(raw_data.sales.auto from ', (.*)')
 group by b, m, c, gasoline_consumption;
 
-insert into car_shop.extra (id_client, id_set, price, datе, discount)
+insert into car_shop.sales (id_client, id_set, price, datе, discount)
 select
 client.id,
-task_2.id,
+cars.id,
 raw_data.sales.price,
 raw_data.sales.datе,
 raw_data.sales.discount
 from
 raw_data.sales
-left join car_shop.task_2 on concat((select brand from car_shop.brand where brand.id = task_2.id_brand), 
-(select model from car_shop.model where model.id = task_2.id_model), 
-(select color from car_shop.color where color.id = task_2.id_color)) = concat(substring(raw_data.sales.auto from 1 for position(' ' in raw_data.sales.auto) - 1),substring
+left join car_shop.cars on concat((select brand from car_shop.brand where brand.id = cars.id_brand), 
+(select model from car_shop.model where model.id = cars.id_model), 
+(select color from car_shop.color where color.id = cars.id_color)) = concat(substring(raw_data.sales.auto from 1 for position(' ' in raw_data.sales.auto) - 1),substring
 (raw_data.sales.auto from position(' ' in raw_data.sales.auto) + 1 for position(',' in raw_data.sales.auto) - position(' ' in raw_data.sales.auto) - 1),substring(raw_data.sales.auto from ', (.*)'))
 left join car_shop.client on client.name = raw_data.sales.person_name
-group by task_2.id, client.id, raw_data.sales.price, raw_data.sales.discount, raw_data.sales.datе;
+group by cars.id, client.id, raw_data.sales.price, raw_data.sales.discount, raw_data.sales.datе;
 
 select
 b.brand as brand_name,
 extract(year from s.datе) as years,
 avg(s.price) as price_avg
-from car_shop.extra s
-left join car_shop.task_2 c on c.id = s.id_set
+from car_shop.sales s
+left join car_shop.cars c on c.id = s.id_set
 left join car_shop.brand b on c.id_brand = b.id
 group by years, brand_name
 order by brand_name;
@@ -163,7 +163,7 @@ select
 extract(month from s.datе) as months,
 extract(year from s.datе) as years,
 round(avg(price), 2) as price_avg
-from car_shop.extra s
+from car_shop.sales s
 group by months, years
 having extract(year from s.datе) = 2022;
 
@@ -172,9 +172,9 @@ having extract(year from s.datе) = 2022;
 select
 name as person,
 string_agg(b.brand || ' ' || m.model, ', ') as cars
-from car_shop.extra s
+from car_shop.sales s
 left join car_shop.client c on c.id = s.id_client
-left join car_shop.task_2 st on st.id = s.id_set
+left join car_shop.cars st on st.id = s.id_set
 left join car_shop.model m on m.id = st.id_model
 left join car_shop.brand b on b.id = st.id_brand
 group by person
@@ -186,8 +186,8 @@ select
 c.country as brand_origin,
 max(s.price / (1 - s.discount / 100.0)) as price_max,
 min(s.price / (1 - s.discount / 100.0)) as price_min
-from car_shop.extra s
-left join car_shop.task_2 s2 on s2.id = s.id_set
+from car_shop.sales s
+left join car_shop.cars s2 on s2.id = s.id_set
 left join car_shop.brand b on b.id = s2.id_brand
 left join car_shop.country c on c.id = b.id_country
 group by brand_origin, c.country
