@@ -35,14 +35,14 @@ insert into car_shop.country (brand_origin)
 	select distinct brand_origin from raw_data.sales;
 
 -- Марки авто
-CREATE TABLE car_shop.marks (
+CREATE TABLE car_shop.brands (
 	brandId serial primary key,
     brand varchar(255),
-    brandCountryId int,
-    foreign key (brandCountryId) references car_shop.country(countryId)
+    brand_Country_Id int,
+    foreign key (brand_Country_Id) references car_shop.country(countryId)
 );
 
-insert into car_shop.marks (brand, brandCountryId)
+insert into car_shop.brands (brand, brandCountryId)
 	select distinct substring(auto, 1, position(' ' in auto) - 1), 
 	coalesce(c.countryId, (select countryId from car_shop.country where brand_origin is null))
 		from raw_data.sales s
@@ -53,10 +53,10 @@ CREATE TABLE car_shop.autos (
     carId SERIAL PRIMARY KEY,
     model varchar(255) NOT NULL, -- model rename 
     consumption real,
-    brand int,
-    color int,
-    FOREIGN KEY (brand) REFERENCES car_shop.marks(brandId),
-    FOREIGN KEY (color) REFERENCES car_shop.colors(colorId)
+    brandId int,
+    colorId int,
+    FOREIGN KEY (brandId) REFERENCES car_shop.brands(brandId),
+    FOREIGN KEY (colorId) REFERENCES car_shop.colors(colorId)
 );
 
 INSERT INTO car_shop.autos (brand, model, color, consumption)
@@ -66,7 +66,7 @@ SELECT DISTINCT b.brandId,
        s.gasoline_consumption
 FROM raw_data.sales s
 JOIN car_shop.colors c ON c.color = substring(s.auto from position(',' in s.auto) + 2)
-JOIN car_shop.marks b ON b.brand = substring(s.auto from 1 for position(' ' in s.auto) - 1);
+JOIN car_shop.brands b ON b.brand = substring(s.auto from 1 for position(' ' in s.auto) - 1);
 
 -- Люди
 CREATE TABLE car_shop.persons (
@@ -115,7 +115,7 @@ extract(year from p.publicDay) as year,
 round(avg(p.price)::numeric, 2) as average_price from car_shop.deals p
 join car_shop.autos a on a.carId = p.carId
 --join car_shop.model_car mc on mc.id_model = c.id_model
-join car_shop.marks b on b.brandId = a.brand
+join car_shop.brands b on b.brandId = a.brand
 group by b.brand, year
 order by brand, year asc; 
 
@@ -134,7 +134,7 @@ select p.person as person,
 from car_shop.persons p
 join car_shop.deals d on d.personId = p.personId
 join car_shop.autos a on a.carId = d.carId
-join car_shop.marks b on b.brandId = a.brand
+join car_shop.brands b on b.brandId = a.brand
 group by p.personId, p.person
 order by p.person asc;
 
@@ -144,8 +144,8 @@ round(MAX(p.price * 100 / (100 - p.discount))::numeric, 2) as price_max,
 round(MIN(p.price * 100 / (100 - p.discount))::numeric, 2) as price_min
 from car_shop.deals p
 join car_shop.autos c on c.carid = p.carid
-join car_shop.marks b on b.brandid = c.brand
-join car_shop.country co on co.countryid = b.brandcountryid
+join car_shop.brands b on b.brandid = c.brand
+join car_shop.country co on co.countryid = b.brand_country_id
 group by co.brand_origin;
 
 ---- ЗАДАНИЕ 6 ----
