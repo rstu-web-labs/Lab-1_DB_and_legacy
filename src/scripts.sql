@@ -16,60 +16,60 @@ COPY raw_data.sales FROM '/data/cars.csv' WITH CSV HEADER NULL 'null';
 
 CREATE SCHEMA car_shop;
 
-CREATE TABLE car_shop.persons ( -- таблица клиентов
-  person_id SERIAL PRIMARY KEY, -- первичный ключ
-  person_name VARCHAR(100), -- символьный тип для имени
-  phone VARCHAR(25) -- символьный тип для телефона
+CREATE TABLE car_shop.persons (  -- таблица клиентов
+  person_id SERIAL PRIMARY KEY,  -- первичный ключ
+  person_name VARCHAR(100) UNIQUE,  -- символьный тип для имени
+  phone VARCHAR(25) UNIQUE  -- символьный тип для телефона
 );
 
-CREATE TABLE car_shop.colors ( -- таблица цветов
+CREATE TABLE car_shop.colors (  -- таблица цветов
   id SERIAL PRIMARY KEY, -- первичный ключ
-  color VARCHAR(20) -- символьный тип для названия цвета
+  color VARCHAR(30)  -- символьный тип для названия цвета
 );
 
-CREATE TABLE car_shop.country ( -- таблица стран
-  country_id SERIAL PRIMARY KEY, -- первичный ключ
-  country_name VARCHAR(20) -- символьный тип для названия страны
+CREATE TABLE car_shop.country (  -- таблица стран
+  country_id SERIAL PRIMARY KEY,  -- первичный ключ
+  country_name VARCHAR(70) UNIQUE  -- символьный тип для названия страны
 );
 
-CREATE TABLE car_shop.models_list ( -- таблица моделей
-  model_id SERIAL PRIMARY KEY, -- первичный ключ
-  model VARCHAR(15), -- символьный тип для названия модели
+CREATE TABLE car_shop.models_list (  -- таблица моделей
+  model_id SERIAL PRIMARY KEY,  -- первичный ключ
+  model VARCHAR(15) unique,  -- символьный тип для названия модели
+  gasoline_consumption float4 -- вещественный тип для расхода топлива
 );
 
-CREATE TABLE car_shop.brands ( -- таблица брендов
-  brand_id SERIAL PRIMARY KEY, -- первичный ключ
-  brand_name VARCHAR(20),  -- символьный тип для названия бренда
-  brand_country_id INTEGER, -- целочисленный тип для внешнего ключа страны бренда
-  constraint fk_brand_country_id foreign key (brand_country_id) REFERENCES country (country_id)
+CREATE TABLE car_shop.brands (  -- таблица брендов
+  brand_id SERIAL PRIMARY KEY,  -- первичный ключ
+  brand_name VARCHAR(20) UNIQUE, -- символьный тип для названия бренда
+  brand_country_id INTEGER,  -- целочисленный тип для внешнего ключа страны бренда
+  constraint fk_brand_country_id foreign key (brand_country_id) REFERENCES country (country_id)ON DELETE SET NULL
 );
 
-CREATE TABLE car_shop.cars ( -- таблица машин
-  car_id SERIAL PRIMARY KEY, --  первичный ключ
-  model_list_id INTEGER, -- целочисленный тип для внешнего ключа моделей
-  brand_id INTEGER, -- целочисленный тип для внешнего ключа бренда
-  CONSTRAINT fk_model_id FOREIGN KEY (model_list_id) REFERENCES models_list (model_id),
-  CONSTRAINT fk_brand_id FOREIGN KEY (brand_id) REFERENCES brands (brand_id)
+CREATE TABLE car_shop.cars (  -- таблица машин
+  car_id SERIAL PRIMARY KEY,  -- первичный ключ
+  model_list_id INTEGER,  -- целочисленный тип для внешнего ключа моделей
+  brand_id INTEGER,  -- целочисленный тип для внешнего ключа бренда
+  CONSTRAINT fk_model_id FOREIGN KEY (model_list_id) REFERENCES models_list (model_id)ON DELETE SET NULL,
+  CONSTRAINT fk_brand_id FOREIGN KEY (brand_id) REFERENCES brands (brand_id)ON DELETE SET NULL
 );
 
-CREATE TABLE car_shop.cars_eque ( -- таблица комплектаций машин
-  car_eque_id SERIAL PRIMARY KEY,  --  первичный ключ
+CREATE TABLE car_shop.cars_eque (  -- таблица комплектаций машин
+  car_eque_id SERIAL PRIMARY KEY,  -- первичный ключ
   car_id INTEGER,  -- целочисленный тип для внешнего ключа машины
-  color_id INTEGER, -- целочисленный тип для внешнего ключа цветов
-  gasoline_consumption float4, -- вещественный тип для расхода топлива
-  CONSTRAINT fk_car_id FOREIGN KEY (car_id) REFERENCES cars (car_id),
-  CONSTRAINT fk_color FOREIGN KEY (color_id) REFERENCES colors (id)
+  color_id INTEGER,  -- целочисленный тип для внешнего ключа цветов
+  CONSTRAINT fk_car_id FOREIGN KEY (car_id) REFERENCES cars (car_id) ON DELETE SET NULL,
+  CONSTRAINT fk_color FOREIGN KEY (color_id) REFERENCES colors (id) ON DELETE SET NULL
 );
 
-CREATE TABLE car_shop.sales ( -- таблица продаж
-  sales_id SERIAL PRIMARY KEY, -- первиычный ключ
-  sold_car_id INTEGER, -- целочисленный тип для внешнего ключа машин
-  price NUMERIC(7, 2), -- числовой тип для хранения цены
-  discount INTEGER, -- целочисленный тип для скидки
-  date DATE, -- тип даты для даты
-  person_id INTEGER, -- целочисленный тип для внешнего ключа клиента
-  CONSTRAINT fk_sold_car_id FOREIGN KEY (sold_car_id) REFERENCES cars (car_id),
-  CONSTRAINT fk_person_id FOREIGN KEY (person_id) REFERENCES persons (person_id)
+CREATE TABLE car_shop.sales (  -- таблица продаж
+  sales_id SERIAL PRIMARY KEY,  -- первичный ключ
+  sold_car_id INTEGER,  -- целочисленный тип для внешнего ключа машин
+  price NUMERIC(7, 2),  -- числовой тип для хранения цены
+  discount NUMERIC(4, 2),  -- числовой тип для скидки
+  date DATE,  -- тип даты для даты
+  person_id INTEGER,  -- целочисленный тип для внешнего ключа клиента
+  CONSTRAINT fk_sold_car_id FOREIGN KEY (sold_car_id) REFERENCES cars_eque (car_eque_id) ON DELETE SET NULL,
+  CONSTRAINT fk_person_id FOREIGN KEY (person_id) REFERENCES persons (person_id) ON DELETE SET NULL
 );
 
 INSERT INTO car_shop.persons (person_name, phone) -- заполняем таблицу клиентов
@@ -86,7 +86,7 @@ SELECT DISTINCT split_part(substring(auto from '[^,]+$'), ' ', 2) AS color
 FROM raw_data.sales;
 
 INSERT INTO car_shop.models_list (model, gasoline_consumption) -- заполняем таблицу моделей машин
-SELECT DISTINCT substring(auto from '\w+\s(.*?),') AS model
+SELECT DISTINCT substring(auto from '\w+\s(.*?),') AS model, gasoline_consumption
 FROM raw_data.sales;
 
 INSERT INTO car_shop.brands (brand_name, brand_country_id)  -- заполняем таблицу брендов
@@ -102,15 +102,13 @@ select DISTINCT
 FROM
     raw_data.sales s;
 
-INSERT INTO car_shop.cars_eque (car_id, color_id, gasoline_consumption) -- заполняем таблицу комплектаций машин
+INSERT INTO car_shop.cars_eque (car_id, color_id) -- заполняем таблицу комплектаций машин
 select DISTINCT
     (SELECT car_id FROM cars ca
     	inner join car_shop.brands br ON ca.brand_id = br.brand_id
     	inner join car_shop.models_list ml ON ca.model_list_id = ml.model_id
-    	WHERE br.brand_name = split_part(s.auto, ' ', 1)
-    	AND ml.model = substring(auto from '\w+\s(.*?),')),
-    (SELECT id FROM colors WHERE color = split_part(substring(auto from '[^,]+$'), ' ', 2)),
-    gasoline_consumption
+    	WHERE ml.model = substring(auto from '\w+\s(.*?),')),
+    (SELECT id FROM colors WHERE color = split_part(substring(auto from '[^,]+$'), ' ', 2))
 FROM
     raw_data.sales s;
 
@@ -119,10 +117,8 @@ select
 	(select car_eque_id from cars_eque eq
 		inner join car_shop.colors cl ON eq.color_id = cl.id
 		inner join car_shop.cars ca ON eq.car_id = ca.car_id
-		inner join car_shop.brands br ON ca.brand_id = br.brand_id
     	inner join car_shop.models_list ml ON ca.model_list_id = ml.model_id
-    	WHERE br.brand_name = split_part(s.auto, ' ', 1)
-    	and ml.model = substring(auto from '\w+\s(.*?),')
+    	WHERE ml.model = substring(auto from '\w+\s(.*?),')
     	and cl.color = split_part(substring(auto from '[^,]+$'), ' ', 2)),
 	s.price,
 	s.discount,
@@ -137,9 +133,7 @@ FROM
 SELECT
     (COUNT(model_id) FILTER (WHERE gasoline_consumption IS NULL) * 100 / COUNT(model_id)) AS percent
 FROM
-    car_shop.cars_eque eq
-    inner join car_shop.cars ca ON eq.car_id = ca.car_id
-    inner join car_shop.models_list ml ON ca.model_list_id = ml.model_id;
+    car_shop.models_list;
 
 -- сприпт 2:
 SELECT
