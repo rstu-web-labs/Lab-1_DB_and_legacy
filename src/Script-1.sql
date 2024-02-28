@@ -32,6 +32,7 @@ phone varchar(30) not null
 create table car_shop.car(
 id serial primary key,
 id_brand int references car_shop.brand(id) on delete restrict,
+id_characteristic int references car_shop.characteristic_car(id) on delete restrict
 model varchar(50) not null,
 price decimal not null
 );
@@ -57,7 +58,6 @@ discount float not null
 --таблица характеристика машины
 create table car_shop.characteristic_car(
 id serial primary key,
-id_car int references car_shop.car(id) on delete restrict,
 color varchar(20) not null,
 gasoline_consumption float null
 );
@@ -74,24 +74,21 @@ split_part(auto, ' ', 1) as brand
 from raw_data.sales 
 group by brand ;
 
-insert into car_shop.car ( model, price, id_brand)
+insert into car_shop.car ( model, price, id_brand, id_characteristic)
 select 
 substring(auto, '([^ ]*)\,[^,]*$') as model , price ,
-brand.id
+brand.id, characteristic_car.id
 from raw_data.sales
 left join car_shop.brand  on brand.brand = 
 split_part(auto, ' ', 1) 
-group by brand.id, model , price
+left join car_shop.characteristic_car on concat(characteristic_car.color, characteristic_car.gasoline_consumption) =
+concat(split_part(auto, ',', 2), sales.gasoline_consumption)
+group by brand.id,characteristic_car.id, model , price
 
-insert into car_shop.characteristic_car (color, gasoline_consumption, id_car)
-select split_part(auto, ',', 2) as color, gasoline_consumption, 
-car.id
+insert into car_shop.characteristic_car (color, gasoline_consumption)
+select split_part(auto, ',', 2) as color, gasoline_consumption 
 from raw_data.sales 
-left join car_shop.car on concat((select brand from 
-car_shop.brand where brand.id = car.id_brand), car.model, car.price) = 
-concat(split_part(auto, ' ', 1), substring(auto, '([^ ]*)\,[^,]*$'), 
-sales.price)
-group by car.id , color, gasoline_consumption;
+group by color, gasoline_consumption;
 
 insert into car_shop.country (brand_origin, id_brand)
 select brand_origin, brand.id
@@ -162,4 +159,5 @@ order by brand_origin;
 select count(*) as clients_from_usa_count
 from car_shop.buyer b
 where phone like '+1%'
+
 
