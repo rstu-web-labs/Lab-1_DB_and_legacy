@@ -31,9 +31,9 @@ CREATE TABLE car_shop.brands (
 -- Создание таблицы моделей автомобилей
 CREATE TABLE car_shop.car_models (
     id SERIAL PRIMARY KEY, 
-    brand_id INTEGER REFERENCES car_shop.brands(id),
+    brand_id INTEGER REFERENCES car_shop.brands(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    color VARCHAR(50) 
+    color VARCHAR(50) UNIQUE 
 );
 
 
@@ -48,10 +48,10 @@ CREATE TABLE car_shop.customers (
 -- Создание таблицы покупок
 CREATE TABLE car_shop.purchases (
     id SERIAL PRIMARY KEY,
-    sales_id INTEGER UNIQUE REFERENCES raw_data.sales(id), 
-    customer_id INTEGER REFERENCES car_shop.customers(id), 
+    sales_id INTEGER UNIQUE REFERENCES raw_data.sales(id) ON DELETE CASCADE, 
+    customer_id INTEGER REFERENCES car_shop.customers(id) ON DELETE CASCADE , 
     discount SMALLINT, 
-    date DATE 
+    date DATE UNIQUE 
 );
 
 INSERT INTO car_shop.brands (name, brand_origin)
