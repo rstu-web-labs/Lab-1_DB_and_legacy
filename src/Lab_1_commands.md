@@ -1,10 +1,7 @@
--- Создание базы данных
 CREATE DATABASE life_on_wheels;
 
--- Создание схемы для сырых данных
 CREATE SCHEMA raw_data;
 
--- Создание таблицы для сырых данных
 CREATE TABLE raw_data.sales (
     id SERIAL PRIMARY KEY,
     auto TEXT,
@@ -17,34 +14,35 @@ CREATE TABLE raw_data.sales (
     brand_origin TEXT
 );
 
--- Загрузка данных из CSV-файла в таблицу sales
 COPY raw_data.sales(auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin)
 FROM '/cars.csv' DELIMITER ',' CSV HEADER;
 
--- Создание схемы
 CREATE SCHEMA car_shop;
 
--- Создание таблицы в схеме
 CREATE TABLE car_shop.brands (
     brand_id SERIAL PRIMARY KEY,
-    brand_name TEXT NOT NULL,
-    brand_origin TEXT
+    brand_name VARCHAR(100) NOT NULL,
+    brand_origin VARCHAR(100)
 );
 
--- Создание таблицы cars
+CREATE TABLE car_shop.colors (
+    color_id SERIAL PRIMARY KEY,
+    color_name VARCHAR(50) NOT NULL
+);
+
 CREATE TABLE car_shop.cars (
     car_id SERIAL PRIMARY KEY,
     brand_id INT REFERENCES car_shop.brands(brand_id),
-    model TEXT NOT NULL,
-    color TEXT NOT NULL,
-    gasoline_consumption FLOAT
+    model VARCHAR(100) NOT NULL,
+    color_id INT REFERENCES car_shop.colors(color_id),
+    gasoline_consumption FLOAT,
+    UNIQUE(brand_id, model, color_id)
 );
 
--- Создание таблицы sales
 CREATE TABLE car_shop.sales (
     sale_id SERIAL PRIMARY KEY,
-    car_id INT REFERENCES car_shop.cars(car_id),
-    customer_id INT REFERENCES car_shop.customers(customer_id),
+    car_id INT REFERENCES car_shop.cars(car_id) ON DELETE CASCADE,
+    customer_id INT REFERENCES car_shop.customers(customer_id) ON DELETE CASCADE,
     sale_date DATE NOT NULL,
     price MONEY NOT NULL,
     discount INT
@@ -52,20 +50,24 @@ CREATE TABLE car_shop.sales (
 
 CREATE TABLE car_shop.customers (
     customer_id SERIAL PRIMARY KEY,
-    full_name TEXT NOT NULL,
-    phone TEXT UNIQUE NOT NULL
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) UNIQUE NOT NULL
 );
 
 
--- Заполнение нормализованных таблиц данными
 INSERT INTO car_shop.brands (brand_name, brand_origin)
 SELECT DISTINCT split_part(auto, ' ', 1), brand_origin
 FROM raw_data.sales;
 
-INSERT INTO car_shop.cars (brand_id, model, color, gasoline_consumption)
-SELECT b.brand_id, split_part(auto, ' ', 2), split_part(auto, ',', 2), gasoline_consumption
+INSERT INTO car_shop.colors (color_name)
+SELECT DISTINCT split_part(auto, ',', 2)
+FROM raw_data.sales;
+
+INSERT INTO car_shop.cars (brand_id, model, color_id, gasoline_consumption)
+SELECT b.brand_id, split_part(auto, ' ', 2), c.color_id, gasoline_consumption
 FROM raw_data.sales s
-JOIN car_shop.brands b ON b.brand_name = split_part(s.auto, ' ', 1);
+JOIN car_shop.brands b ON b.brand_name = split_part(s.auto, ' ', 1)
+JOIN car_shop.colors c ON c.color_name = split_part(s.auto, ',', 2);
 
 INSERT INTO car_shop.customers (full_name, phone)
 SELECT DISTINCT person_name, phone
@@ -74,60 +76,60 @@ FROM raw_data.sales;
 INSERT INTO car_shop.sales (car_id, customer_id, sale_date, price, discount)
 SELECT c.car_id, cu.customer_id, s.date, s.price, s.discount
 FROM raw_data.sales s
-JOIN car_shop.cars c ON c.model = split_part(s.auto, ' ', 2) AND c.color = split_part(s.auto, ',', 2)
+JOIN car_shop.cars c ON c.brand_id = (SELECT brand_id FROM car_shop.brands WHERE brand_name = split_part(s.auto, ' ', 1))
+JOIN car_shop.colors col ON col.color_name = split_part(s.auto, ',', 2)
 JOIN car_shop.customers cu ON cu.phone = s.phone;
 
--- Запрос для аналитики
 SELECT ROUND((COUNT(*) FILTER (WHERE gasoline_consumption IS NULL)::decimal / COUNT(*)) * 100, 2) AS nulls_percentage_gasoline_consumption
 FROM car_shop.cars;
 
-SELECT 
+SELECT
     b.brand_name,
     EXTRACT(YEAR FROM s.sale_date) AS year,
     ROUND(AVG(CAST(s.price AS NUMERIC) * (1 - s.discount / 100.0)), 2) AS price_avg
-FROM 
+FROM
     car_shop.sales s
-JOIN 
+JOIN
     car_shop.cars c ON s.car_id = c.car_id
-JOIN 
+JOIN
     car_shop.brands b ON c.brand_id = b.brand_id
-GROUP BY 
+GROUP BY
     b.brand_name, year
-ORDER BY 
+ORDER BY
     b.brand_name, year;
 
-SELECT 
+SELECT
     cu.full_name AS person,
     STRING_AGG(b.brand_name || ' ' || c.model, ', ') AS cars
-FROM 
+FROM
     car_shop.sales s
-JOIN 
+JOIN
     car_shop.cars c ON s.car_id = c.car_id
-JOIN 
+JOIN
     car_shop.brands b ON c.brand_id = b.brand_id
-JOIN 
+JOIN
     car_shop.customers cu ON s.customer_id = cu.customer_id
-GROUP BY 
+GROUP BY
     cu.full_name
-ORDER BY 
+ORDER BY
     cu.full_name;
 
-SELECT 
+SELECT
     b.brand_origin,
     MAX(s.price / (1 - s.discount / 100.0)) AS price_max,
     MIN(s.price / (1 - s.discount / 100.0)) AS price_min
-FROM 
+FROM
     car_shop.sales s
-JOIN 
+JOIN
     car_shop.cars c ON s.car_id = c.car_id
-JOIN 
+JOIN
     car_shop.brands b ON c.brand_id = b.brand_id
-GROUP BY 
+GROUP BY
     b.brand_origin;
 
-SELECT 
+SELECT
     COUNT(*) AS persons_from_usa_count
-FROM 
+FROM
     car_shop.customers
-WHERE 
+WHERE
     phone LIKE '+1%';
