@@ -116,7 +116,7 @@ inner join car_shop.brand b on b.name = split_part(split_part(s.auto, ',', 1), '
 
 
 --Комплектация
-insert into car_shop.equipment (model_id, color_id, gas_consumption)
+--insert into car_shop.equipment (model_id, color_id, gas_consumption)
 select distinct
     m.id_model,
     c.id_color,
@@ -129,6 +129,7 @@ inner join car_shop.color c on c."name" = trim(split_part(s.auto, ',', 2));
 
 
 --Продажа
+
 INSERT INTO sales (equipment_id, client_id, price, discount, sale_date)
 SELECT
     sub_query.id_equipment,
@@ -142,21 +143,19 @@ left join (
 	    e.id_equipment,
 		m.name as model,
 		b.name as brand,
-		c.name as country,
+		COALESCE(c.name, 'Unknown') as country,
 		col.name as color
 	from car_shop.equipment e
 	inner join car_shop.color col on col.id_color = e.color_id
 	inner join car_shop.model m on m.id_model = e.model_id
 	inner join car_shop.brand b on b.id_brand = m.brand_id
-	inner join car_shop.country c on c.id_country = b.country_manufacturer_id
+	left join car_shop.country c on c.id_country = b.country_manufacturer_id 
 ) as sub_query on
 sub_query.brand = trim(split_part( split_part(s.auto, ',', 1), ' ', 1)) and
 sub_query.model = trim(split_part( split_part(s.auto, ',', 1), ' ', 2)) and
 sub_query.color = trim(split_part(s.auto, ',', 2)) and
-sub_query.country = s.brand_origin
+sub_query.country = COALESCE(s.brand_origin, 'Unknown') 
 inner join car_shop.client c on c.name = s.person_name;
-
-
 
 -- Задание 1 
 
@@ -247,4 +246,5 @@ FROM
     car_shop.client c
 WHERE
     c.phone LIKE '+1%';
+
 
