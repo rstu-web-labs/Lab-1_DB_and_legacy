@@ -1,21 +1,21 @@
 CREATE DATABASE life_on_wheels;
 
--- Ñûðûå äàííûå
+-- Ð¡Ñ‹Ñ€Ñ‹Ðµ Ð´Ð°Ð½Ð½Ñ‹Ðµ
 
 CREATE SCHEMA raw_data;
 
 CREATE TABLE raw_data.sales (
-    id SERIAL PRIMARY KEY, -- óíèêàëüíûé èäåíòèôèêàòîð, èíêðåìåíò
-    auto VARCHAR(63) NOT NULL, -- áðåíä, ìîäåëü è öâåò
-    gasoline_consumption DECIMAL(3,1), -- ÷èñëî íå ìîæåò áûòü òðåõçíà÷íûì
-    	-- ÷èñëî ñ ïëàâàþùåé òî÷êîé, îãðàíè÷åííîå äî 1 çíàêà ïîñëå ,
-    price DECIMAL(19,12), -- ÷èñëî íå ìîæåò áûòü áîëüøå ñåìèçíà÷íîé ñóììû
-    	-- ÷èñëî ñ ïëàâàþùåé òî÷êîé, îãðàíè÷åííîå äî 12 çíàêîâ ïîñëå ,
-    date DATE NOT NULL, -- äàòà, óäîáíîå õðàíåíèå è îáðàáîòêà äàòû
-    person_name VARCHAR(127) NOT NULL, -- ôèî
-    phone VARCHAR(63) NOT NULL, -- íîìåð òåëåôîíà
+    id SERIAL PRIMARY KEY, -- ÑƒÐ½Ð¸ÐºÐ°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€, Ð¸Ð½ÐºÑ€ÐµÐ¼ÐµÐ½Ñ‚
+    auto VARCHAR(63) NOT NULL, -- Ð±Ñ€ÐµÐ½Ð´, Ð¼Ð¾Ð´ÐµÐ»ÑŒ Ð¸ Ñ†Ð²ÐµÑ‚
+    gasoline_consumption DECIMAL(3,1), -- Ñ‡Ð¸ÑÐ»Ð¾ Ð½Ðµ Ð¼Ð¾Ð¶ÐµÑ‚ Ð±Ñ‹Ñ‚ÑŒ Ñ‚Ñ€ÐµÑ…Ð·Ð½Ð°Ñ‡Ð½Ñ‹Ð¼
+    	-- Ñ‡Ð¸ÑÐ»Ð¾ Ñ Ð¿Ð»Ð°Ð²Ð°ÑŽÑ‰ÐµÐ¹ Ñ‚Ð¾Ñ‡ÐºÐ¾Ð¹, Ð¾Ð³Ñ€Ð°Ð½Ð¸Ñ‡ÐµÐ½Ð½Ð¾Ðµ Ð´Ð¾ 1 Ð·Ð½Ð°ÐºÐ° Ð¿Ð¾ÑÐ»Ðµ ,
+    price DECIMAL(19,12), -- Ñ‡Ð¸ÑÐ»Ð¾ Ð½Ðµ Ð¼Ð¾Ð¶ÐµÑ‚ Ð±Ñ‹Ñ‚ÑŒ Ð±Ð¾Ð»ÑŒÑˆÐµ ÑÐµÐ¼Ð¸Ð·Ð½Ð°Ñ‡Ð½Ð¾Ð¹ ÑÑƒÐ¼Ð¼Ñ‹
+    	-- Ñ‡Ð¸ÑÐ»Ð¾ Ñ Ð¿Ð»Ð°Ð²Ð°ÑŽÑ‰ÐµÐ¹ Ñ‚Ð¾Ñ‡ÐºÐ¾Ð¹, Ð¾Ð³Ñ€Ð°Ð½Ð¸Ñ‡ÐµÐ½Ð½Ð¾Ðµ Ð´Ð¾ 12 Ð·Ð½Ð°ÐºÐ¾Ð² Ð¿Ð¾ÑÐ»Ðµ ,
+    date DATE NOT NULL, -- Ð´Ð°Ñ‚Ð°, ÑƒÐ´Ð¾Ð±Ð½Ð¾Ðµ Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸Ðµ Ð¸ Ð¾Ð±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ° Ð´Ð°Ñ‚Ñ‹
+    person_name VARCHAR(127) NOT NULL, -- Ñ„Ð¸Ð¾
+    phone VARCHAR(63) NOT NULL, -- Ð½Ð¾Ð¼ÐµÑ€ Ñ‚ÐµÐ»ÐµÑ„Ð¾Ð½Ð°
     discount DECIMAL(5,2) CHECK (discount >= 0 AND discount <= 100), 
-    	-- ñêèäêà â ïðîöåíòàõ, ÷èñëî íå áîëüøå 100, îãðàíè÷åííîå äî äâóõ çíàêîâ ïîñëå ,
+    	-- ÑÐºÐ¸Ð´ÐºÐ° Ð² Ð¿Ñ€Ð¾Ñ†ÐµÐ½Ñ‚Ð°Ñ…, Ñ‡Ð¸ÑÐ»Ð¾ Ð½Ðµ Ð±Ð¾Ð»ÑŒÑˆÐµ 100, Ð¾Ð³Ñ€Ð°Ð½Ð¸Ñ‡ÐµÐ½Ð½Ð¾Ðµ Ð´Ð¾ Ð´Ð²ÑƒÑ… Ð·Ð½Ð°ÐºÐ¾Ð² Ð¿Ð¾ÑÐ»Ðµ ,
     brand_origin VARCHAR(127)
 );
 
@@ -25,48 +25,48 @@ DELIMITER ','
 null 'null'
 CSV HEADER;
 
--- Íîðìàëèçîâàííûå äàííûå
+-- ÐÐ¾Ñ€Ð¼Ð°Ð»Ð¸Ð·Ð¾Ð²Ð°Ð½Ð½Ñ‹Ðµ Ð´Ð°Ð½Ð½Ñ‹Ðµ
 
 CREATE SCHEMA car_shop;
 
 CREATE TABLE car_shop.brands (
-    id SERIAL PRIMARY KEY, -- óíèêàëüíûé èäåíòèôèêàòîð, èíêðåìåíò
-    brand VARCHAR(63) NOT NULL, -- áðåíä
-    origin VARCHAR(127) -- ñòðàíà
+    id SERIAL PRIMARY KEY, -- ÑƒÐ½Ð¸ÐºÐ°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€, Ð¸Ð½ÐºÑ€ÐµÐ¼ÐµÐ½Ñ‚
+    brand VARCHAR(63) NOT NULL, -- Ð±Ñ€ÐµÐ½Ð´
+    origin VARCHAR(127) -- ÑÑ‚Ñ€Ð°Ð½Ð°
 );
 
 CREATE TABLE car_shop.models (
-	id SERIAL PRIMARY KEY, -- óíèêàëüíûé èäåíòèôèêàòîð, èíêðåìåíò
-	model VARCHAR(63) NOT NULL, -- ìîäåëü
-	brand_id INT NOT NULL, -- èäåíòèôèêàòîð áðåíäà, ÂÊ îò brands
+	id SERIAL PRIMARY KEY, -- ÑƒÐ½Ð¸ÐºÐ°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€, Ð¸Ð½ÐºÑ€ÐµÐ¼ÐµÐ½Ñ‚
+	model VARCHAR(63) NOT NULL, -- Ð¼Ð¾Ð´ÐµÐ»ÑŒ
+	brand_id INT NOT NULL, -- Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€ Ð±Ñ€ÐµÐ½Ð´Ð°, Ð’Ðš Ð¾Ñ‚ brands
 	gasoline_consumption DECIMAL(3,1),
 	FOREIGN KEY (brand_id) REFERENCES car_shop.brands(id)
 );
 
 CREATE TABLE car_shop.colors (
-    id SERIAL PRIMARY KEY, -- óíèêàëüíûé èäåíòèôèêàòîð, èíêðåìåíò
-    color VARCHAR(63) NOT NULL -- öâåò àâòî
+    id SERIAL PRIMARY KEY, -- ÑƒÐ½Ð¸ÐºÐ°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€, Ð¸Ð½ÐºÑ€ÐµÐ¼ÐµÐ½Ñ‚
+    color VARCHAR(63) NOT NULL -- Ñ†Ð²ÐµÑ‚ Ð°Ð²Ñ‚Ð¾
 );
 
 CREATE TABLE car_shop.persons (
-    id SERIAL PRIMARY KEY, -- óíèêàëüíûé èäåíòèôèêàòîð, èíêðåìåíò
-    person_name VARCHAR(127) NOT NULL, -- ôèî
-    phone VARCHAR(63) NOT NULL -- íîìåð òåëåôîíà
+    id SERIAL PRIMARY KEY, -- ÑƒÐ½Ð¸ÐºÐ°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€, Ð¸Ð½ÐºÑ€ÐµÐ¼ÐµÐ½Ñ‚
+    person_name VARCHAR(127) NOT NULL, -- Ñ„Ð¸Ð¾
+    phone VARCHAR(63) NOT NULL -- Ð½Ð¾Ð¼ÐµÑ€ Ñ‚ÐµÐ»ÐµÑ„Ð¾Ð½Ð°
 );
 
 CREATE TABLE car_shop.sale (
-    id SERIAL PRIMARY KEY, -- óíèêàëüíûé èäåíòèôèêàòîð, èíêðåìåíò
-    model_id INT, -- èäåíòèôèêàòîð ìîäåëè, ÂÊ îò models
-    color_id INT, -- èäåíòèôèêàòîð öâåòà, ÂÊ îò colors
-    price DECIMAL(19,12), -- öåíà àâòî
-    date DATE NOT NULL, -- äàòà
-    person_name VARCHAR(127) NOT NULL, -- ôèî ïîêóïàòåëÿ
-    discount DECIMAL(5,2), -- ñêèäêà â ïðîöåíòàõ
+    id SERIAL PRIMARY KEY, -- ÑƒÐ½Ð¸ÐºÐ°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€, Ð¸Ð½ÐºÑ€ÐµÐ¼ÐµÐ½Ñ‚
+    model_id INT, -- Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€ Ð¼Ð¾Ð´ÐµÐ»Ð¸, Ð’Ðš Ð¾Ñ‚ models
+    color_id INT, -- Ð¸Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€ Ñ†Ð²ÐµÑ‚Ð°, Ð’Ðš Ð¾Ñ‚ colors
+    price DECIMAL(19,12), -- Ñ†ÐµÐ½Ð° Ð°Ð²Ñ‚Ð¾
+    date DATE NOT NULL, -- Ð´Ð°Ñ‚Ð°
+    person_name VARCHAR(127) NOT NULL, -- Ñ„Ð¸Ð¾ Ð¿Ð¾ÐºÑƒÐ¿Ð°Ñ‚ÐµÐ»Ñ
+    discount DECIMAL(5,2), -- ÑÐºÐ¸Ð´ÐºÐ° Ð² Ð¿Ñ€Ð¾Ñ†ÐµÐ½Ñ‚Ð°Ñ…
     FOREIGN KEY (model_id) REFERENCES car_shop.models(id),
     FOREIGN KEY (color_id) REFERENCES car_shop.colors(id)
 );
 
--- Çàïîëíåíèå òàáëèö äàííûìè
+-- Ð—Ð°Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ðµ Ñ‚Ð°Ð±Ð»Ð¸Ñ† Ð´Ð°Ð½Ð½Ñ‹Ð¼Ð¸
 
 INSERT INTO car_shop.brands (brand, origin)
 SELECT DISTINCT
@@ -111,14 +111,14 @@ JOIN car_shop.brands b ON m.brand_id = b.id
 JOIN car_shop.colors c ON split_part(s.auto, ',', 2) = c.color;
 ;
 
--- Çàäàíèå ¹1
+-- Ð—Ð°Ð´Ð°Ð½Ð¸Ðµ â„–1
 SELECT 
     ROUND((COUNT(*) FILTER (WHERE gasoline_consumption IS NULL) * 100.0) / COUNT(*), 2) AS nulls_percentage_gasoline_consumption
 FROM 
     raw_data.sales;
 ;
 
--- Çàäàíèå ¹2
+-- Ð—Ð°Ð´Ð°Ð½Ð¸Ðµ â„–2
 SELECT 
     b.brand AS brand_name,
     EXTRACT(year FROM s.date) AS year,
@@ -135,7 +135,7 @@ ORDER BY
     b.brand, EXTRACT(year FROM s.date);
 ;
 
--- Çàäàíèå ¹3
+-- Ð—Ð°Ð´Ð°Ð½Ð¸Ðµ â„–3
 SELECT 
     EXTRACT(MONTH FROM s.date) AS month,
     EXTRACT(YEAR FROM s.date) AS year,
@@ -146,7 +146,7 @@ GROUP BY month, year
 ORDER BY month, year;
 ;
    
--- Çàäàíèå ¹4
+-- Ð—Ð°Ð´Ð°Ð½Ð¸Ðµ â„–4
 SELECT 
     p.person_name AS person,
     STRING_AGG(DISTINCT CONCAT_WS(' ', b.brand, m.model), ', ') AS cars
@@ -164,7 +164,7 @@ ORDER BY
     p.person_name;
 ;
    
--- Çàäàíèå ¹5
+-- Ð—Ð°Ð´Ð°Ð½Ð¸Ðµ â„–5
 SELECT 
     b.origin AS brand_origin,
     MAX(s.price * (1 - s.discount / 100.0)) AS price_max,
@@ -179,7 +179,7 @@ GROUP BY
     b.origin;
 ;
    
--- Çàäàíèå ¹6
+-- Ð—Ð°Ð´Ð°Ð½Ð¸Ðµ â„–6
 SELECT 
     COUNT(*) AS persons_from_usa_count
 FROM 
