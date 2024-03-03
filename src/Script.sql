@@ -50,8 +50,8 @@ create table car_shop.deals
 (
 id serial not null primary key,
 customer_id int references car_shop.customers(id),
-model_id int references car_shop.models(id) on delete cascade,
-color_id int references car_shop.colors(id) on delete cascade,
+model_id int references car_shop.models(id),
+color_id int references car_shop.colors(id),
 price numeric,
 discount smallint,
 date date
