@@ -49,7 +49,7 @@ phone_number varchar(30)
 create table car_shop.deals 
 (
 id serial not null primary key,
-customer_id int references car_shop.customers(id) on delete cascade,
+customer_id int references car_shop.customers(id),
 model_id int references car_shop.models(id) on delete cascade,
 color_id int references car_shop.colors(id) on delete cascade,
 price numeric,
