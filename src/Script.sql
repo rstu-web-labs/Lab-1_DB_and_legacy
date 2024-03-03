@@ -23,15 +23,15 @@ create table car_shop.vendors
 (
 id serial primary key not null,
 vendor_name varchar(30),
-vendor_country varchar(30)
+vendor_country varchar(50) unique
 );
 
 create table car_shop.models
 (
 id serial not null primary key,
-vendor_id int references car_shop.vendors(id) on delete cascade,
+vendor_id int references car_shop.vendors(id),
 model_name varchar (50),
-gasoline_consumprion float check 
+gasoline_consumption numeric(18,2) 
 (gasoline_consumption >= 0 and gasoline_consumption <= 99.9) default null
 );
 
