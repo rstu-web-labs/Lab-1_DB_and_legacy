@@ -3,12 +3,12 @@ create schema if not exists raw_data;
 create table if not exists raw_data.sales (
 id int primary key not null,
 auto varchar(40) not null,
-gasoline_consumption numeric null,
-price numeric not null,
+gasoline_consumption numeric null check (gasoline_consumption >= 0),
+price numeric not null check (price >= 0),
 date date not null,
 person_name varchar(50) not null,
 phone varchar(30) not null,
-discount int null,
+discount numeric null check (discount >= 0),
 brand_origin varchar(60) null
 );
 
@@ -19,25 +19,32 @@ create schema if not exists car_shop;
 
 create table if not exists car_shop.colors (
 idColor serial primary key,
-color varchar(20) null
+color varchar(20) unique null
 );
 
 create table if not exists car_shop.marks(
 idMarka serial primary key,
-marka varchar(30) not null 
+marka varchar(30) unique not null 
 );
+
+create table if not exists car_shop.country (
+idCountry serial primary key,
+country varchar(60) null
+);
+
 
 create table if not exists car_shop.models(
 idModel serial primary key,
-model varchar(30) not null 
+model varchar(30) unique not null,
+gasoline_consumption numeric unique null check (gasoline_consumption >= 0)
 );
 
-create table if not exists car_shop.brends(
-idBrend serial primary key,
-idColor int not null references car_shop.colors(idColor),
-idMarka int not null references car_shop.marks(idMarka),
-idModel int not null references car_shop.models(idModel),
-gasoline_consumption numeric null
+create table if not exists car_shop.cars(
+idCars serial primary key,
+idColor int not null references car_shop.colors(idColor) ON DELETE CASCADE,
+idMarka int not null references car_shop.marks(idMarka) ON DELETE CASCADE,
+idModel int not null references car_shop.models(idModel) ON DELETE CASCADE,
+idCountry int references car_shop.country(idCountry)
 );
 
 create table if not exists car_shop.clients (
@@ -48,22 +55,16 @@ phone varchar(30) not null
 
 create table if not exists car_shop.sales(
 idSales serial primary key,
-price numeric not null,
-discount int null,
+idClient int not null references car_shop.clients(idClient) ON DELETE CASCADE,
+price numeric not null check (price >= 0),
+discount numeric null check (discount >= 0),
 date date not null
 );
 
-create table if not exists car_shop.country (
-idCountry serial primary key,
-country varchar(50) null
-);
-
-create table if not exists car_shop.auto (
+create table if not exists car_shop.autoInfo (
 idAuto serial primary key,
-idBrend int not null references car_shop.brends(idBrend),
-idSales int not null references car_shop.sales(idSales),
-idClient int not null references car_shop.clients(idClient),
-idCountry int  references car_shop.country(idCountry)
+idCars int not null references car_shop.cars(idCars) ON DELETE CASCADE,
+idSales int not null references car_shop.sales(idSales) ON DELETE CASCADE
 );
 
 insert into car_shop.colors(color)
@@ -78,42 +79,42 @@ insert into car_shop.marks(marka)
 select distinct split_part(auto, ' ', 1)
 from raw_data.sales;
 
-insert into car_shop.models(model) 
-select distinct trim(substring(auto, char_length(split_part(auto, ' ', 1)) + 1, char_length(auto) - char_length(split_part(auto, ' ', 1)) - char_length(split_part(auto, ',', 2)) - 1))
-from raw_data.sales;
-
-insert into car_shop.brends (idColor, idMarka, idModel, gasoline_consumption)
-select distinct col.idColor, mar.idMarka, md.idModel, sal.gasoline_consumption
-from raw_data.sales sal
-join car_shop.colors col on col.color = split_part(sal.auto, ',', 2)
-join car_shop.marks mar on mar.marka = split_part(sal.auto, ' ', 1)
-join car_shop.models md on md.model = trim(substring(sal.auto, char_length(split_part(sal.auto, ' ', 1)) + 1, char_length(sal.auto) - char_length(split_part(sal.auto, ' ', 1)) - char_length(split_part(sal.auto, ',', 2)) - 1));
-
-insert into car_shop.sales (price, discount, date)
-select distinct price, discount, date
-from raw_data.sales;
-
 insert into car_shop.country(country)
 select distinct brand_origin
 from raw_data.sales;
 
-insert into car_shop.auto (idBrend, idSales, idClient, idCountry)
-select b.idBrend, s2.idSales, c.idClient, co.idCountry
+insert into car_shop.models(model, gasoline_consumption) 
+select distinct trim(substring(auto, char_length(split_part(auto, ' ', 1)) + 1, char_length(auto) - char_length(split_part(auto, ' ', 1)) - char_length(split_part(auto, ',', 2)) - 1)), gasoline_consumption
+from raw_data.sales;
+
+insert into car_shop.cars (idColor, idMarka, idModel, idCountry)
+select distinct col.idColor, mar.idMarka, md.idModel, co.idCountry
+from raw_data.sales sal
+join car_shop.colors col on col.color = split_part(sal.auto, ',', 2)
+join car_shop.marks mar on mar.marka = split_part(sal.auto, ' ', 1)
+join car_shop.models md on md.model = trim(substring(sal.auto, char_length(split_part(sal.auto, ' ', 1)) + 1, char_length(sal.auto) - char_length(split_part(sal.auto, ' ', 1)) - char_length(split_part(sal.auto, ',', 2)) - 1))
+left join car_shop.country co on sal.brand_origin = co.country;
+
+insert into car_shop.sales (price, discount, date, idClient)
+select distinct price, discount, date, c.idClient
+from raw_data.sales s
+join car_shop.clients c on s.phone = c.phone;
+
+insert into car_shop.autoInfo (idCars, idSales)
+select b.idCars, s2.idSales
 from raw_data.sales s 
-join car_shop.clients c on s.phone = c.phone 
-join car_shop.brends b on 
+join car_shop.cars b on 
 trim(split_part(s.auto, ' ', 1)) = trim((select marka from car_shop.marks m where m.idmarka = b.idmarka)) and
 trim(split_part(s.auto, ',', 2)) = trim((select color from car_shop.colors c2 where c2.idcolor = b.idcolor)) and
 trim(substring(auto, char_length(split_part(auto, ' ', 1)) + 1, char_length(auto) - char_length(split_part(auto, ' ', 1)) - char_length(split_part(auto, ',', 2)) - 1)) = trim((select model from car_shop.models m where m.idmodel = b.idmodel))
 join car_shop.sales s2 on s.price  = s2.price and s."date" = s2."date"
-left join car_shop.country co on s.brand_origin = co.country;
 
 -- Аналитические скрипты
 
 
 --Напишите запрос, который выведет процент моделей машин, у которых нет параметра gasoline_consumption.
-select count(*) * 100.0 / (select count(*) from car_shop.brends) as nulls_percentage_gasoline_consumption
-from car_shop.brends
+select count(*) * 100.0 / (select count(*) from car_shop.cars) as nulls_percentage_gasoline_consumption
+from car_shop.models m 
 where gasoline_consumption is null;
 
 --Напишите запрос, который покажет название бренда и среднюю цену его автомобилей в разбивке по всем годам с учётом скидки.
@@ -123,8 +124,8 @@ select
     m.marka as "brand_name",
     extract(year from s."date") as "year",
     round(avg(s.price * (1 - s.discount / 100)), 2) AS "price_avg"
-from car_shop.auto a
-join car_shop.brends b ON a.idBrend = b.idBrend
+from car_shop.autoInfo a
+join car_shop.cars b ON a.idCars = b.idCars
 join car_shop.sales s ON a.idSales = s.idSales
 join car_shop.marks m ON b.idMarka = m.idMarka
 group by m.marka, EXTRACT(YEAR FROM s."date")
@@ -150,9 +151,10 @@ order by month asc;
 select
     c.person_name as "person",
     string_agg(concat(m.marka, ' ', md.model), ', ') as "cars"
-from car_shop.auto a
-join car_shop.clients c on a.idClient = c.idClient
-join car_shop.brends b on a.idBrend = b.idBrend
+from car_shop.sales s
+join car_shop.autoInfo a on s.idSales = a.idSales
+join car_shop.clients c on s.idClient = c.idClient
+join car_shop.cars b on a.idCars = b.idCars
 join car_shop.marks m on b.idMarka = m.idMarka
 join car_shop.models md on b.idModel = md.idModel
 group by c.person_name
@@ -165,12 +167,15 @@ order by c.person_name asc;
 --Цена в колонке price дана с учётом скидки.
 select
     co.country as "brand_origin",
-    max(s.price) as "price_max",
-    min(s.price) as "price_min"
-from car_shop.auto a
+    MAX(s.price) as "price_max",
+    MIN(s.price) as "price_min"
+from car_shop.autoInfo a
 join car_shop.sales s on a.idSales = s.idSales
-left join car_shop.country co on a.idCountry = co.idCountry
+left join car_shop.country co on a.idCars = co.idCountry
 group by co.country;
+
+
+
 
 
    --Напишите запрос, который покажет количество всех пользователей из США. 
