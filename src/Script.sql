@@ -5,7 +5,7 @@ create schema raw_data;
 create table raw_data.sales
 ( id smallint primary key,
 auto varchar(255) not null,
-gasoline_consumption numeric(4,2) check (gasoline_consumption < 100),
+gasoline_consumption numeric(4,2) check (gasoline_consumption between 0 and 100),
 price numeric(50, 20),
 date date,
 person_name varchar(255) not null,
@@ -20,12 +20,12 @@ from '\cars.csv'
 with csv header null 'null' delimiter ',';
 
 ---— cоздание схемы car_shop для нормализованной БД —-—
-create schema car_shop;
+create schema car_shop1;
 
 ---создание и заполнение таблицы стран country
 create table car_shop.country (
 id_country serial primary key,
-brand_origin varchar(255));
+name varchar(255) unique);
 
 insert into car_shop.country (brand_origin)
 select distinct brand_origin from raw_data.sales;
@@ -33,7 +33,7 @@ select distinct brand_origin from raw_data.sales;
 ---создание и заполнение таблицы цветов color
 create table car_shop.color (
 id_color serial primary key,
-name_color varchar(255));
+name_color varchar(255) unique);
 
 insert into car_shop.color (name_color)
 select distinct substring(auto, position (',' in auto) + 2 ) from raw_data.sales;
@@ -53,7 +53,8 @@ id_brand serial primary key,
 id_country int,
 name_brand varchar(255),
 constraint fk_constraint_country foreign key (id_country)
-references car_shop.country(id_country));
+references car_shop.country(id_country) on delete restrict,
+unique(id_country, name_brand));
 
 insert into car_shop.brand (name_brand, id_country)
 select distinct substring(auto, 1, position(' ' in auto) - 1),
@@ -67,9 +68,9 @@ create table car_shop.model_car (
 id_model serial primary key,
 id_brand int,
 name_model varchar(255),
-gasoline_consumption numeric(4,2) check (gasoline_consumption < 100),
+gasoline_consumption numeric(4,2) check (gasoline_consumption between 0 and 100),
 constraint fk_constraint_brand foreign key (id_brand)
-references car_shop.brand(id_brand));
+references car_shop.brand(id_brand) on delete restrict);
 
 insert into car_shop.model_car (id_brand, name_model, gasoline_consumption)
 select distinct b.id_brand,
@@ -84,9 +85,9 @@ id_car serial primary key,
 id_color int,
 id_model int,
 constraint fk_constraint_color foreign key (id_color)
-references car_shop.color(id_color),
+references car_shop.color(id_color) on delete restrict,
 constraint fk_constraint_model foreign key (id_model)
-references car_shop.model_car(id_model)
+references car_shop.model_car(id_model) on delete restrict
 );
 
 insert into car_shop.cars (id_model, id_color)
@@ -106,9 +107,9 @@ date_purch date,
 price numeric(50, 20),
 discount numeric(4,2) check (discount >= 0),
 constraint fk_constraint_people foreign key (id_person)
-references car_shop.people(id_person),
+references car_shop.people(id_person) on delete restrict,
 constraint fk_constraint_car foreign key (id_car)
-references car_shop.cars(id_car));
+references car_shop.cars(id_car) on delete restrict);
 
 insert into
 car_shop.purchases (id_person, id_car, date_purch, price, discount)
@@ -130,16 +131,16 @@ where c.id_color = col.id_color;
 --— аналитические скрипты ——
 -----------------------------—
 
--— Задание №1
--— скрипт
+-- Задание №1
+-- скрипт
 select 100.0 * count(*) / (select count(*) from car_shop.model_car)
 as nulls_percentage_gasoline_consumption
 from car_shop.model_car
 where gasoline_consumption is null;
 
 
--— Задание №2
--— скрипт
+-- Задание №2
+-- скрипт
 select b.name_brand as brand_name,
 extract(year from p.date_purch) as year,
 round(avg(p.price), 2) as price_avg from car_shop.purchases p
@@ -150,8 +151,8 @@ group by b.name_brand, year
 order by brand_name, year asc;
 
 
--— Задание №3
--— скрипт
+-- Задание №3
+-- скрипт
 select extract(month from p.date_purch) as month,
 extract(year from p.date_purch) as year,
 round(avg(p.price), 2) as price_avg
@@ -162,8 +163,8 @@ order by extract(month from p.date_purch) asc;
 
 
 
--— Задание №4
--— скрипт
+-- Задание №4
+-- скрипт
 select p.name_person as person,
 STRING_AGG(b.name_brand || ' ' || mc.name_model, ', ') as cars
 from car_shop.people p
@@ -174,8 +175,8 @@ join car_shop.brand b on b.id_brand = mc.id_brand
 group by p.id_person, p.name_person
 order by p.name_person asc;
 
--— Задание №5
--— скрипт
+-- Задание №5
+-- скрипт
 select co.brand_origin,
 round(MAX(p.price * 100 / (100 - p.discount)), 2) as price_max,
 round(MIN(p.price * 100 / (100 - p.discount)), 2) as price_min
@@ -187,7 +188,7 @@ join car_shop.country co on co.id_country = b.id_country
 group by co.brand_origin;
 
 
--— Задание №6
--— скрипт
+-- Задание №6
+-- скрипт
 select count(*) as persons_from_usa_count from car_shop.people
 where phone like('+1%');
