@@ -39,10 +39,9 @@ create table car_shop.buyers( --	 	создание таблицы покупа�
 	phone varchar(30) -- 				телефон, из поля сырой таблицы
 );
 
-create table car_shop.cars( -- 			создание таблицы машин
+create table car_shop.car_models( -- 	создание таблицы моделей машин
 	id serial primary key not null, --	id машины - автоинкремент
-	car_name varchar(40) not null, -- 	название машины, из поля auto сырой таблицы, между первыми пробелом и запятой 
-	color_id int not null references car_shop.colors(id) -- цвет машины - ВК на таблицу colors
+	car_name varchar(40) not null -- 	название машины, из поля auto сырой таблицы, между первыми пробелом и запятой 
 );
 
 create table car_shop.brands( -- 		создание таблицы марок
@@ -53,9 +52,10 @@ create table car_shop.brands( -- 		создание таблицы марок
 
 create table car_shop.cars_info( -- 		создание таблицы с информацией о машинах
 	id serial primary key not null, --		id информации о машине - автоинкремент
-	car_id int not null references car_shop.cars(id), --	 машина - ВК на таблицу cars
-	brand_id int not null references car_shop.brands(id), -- марка - ВК на таблицы brands
-	gasoline_consumption decimal(4,2) --	потребление бензина - двузначное числом, с округлением до сотых. Может быть null
+	car_id int not null references car_shop.car_models(id), -- 	машина - ВК на таблицу car_models
+	brand_id int not null references car_shop.brands(id), --	марка - ВК на таблицы brands
+	gasoline_consumption decimal(4,2), --	потребление бензина - двузначное числом, с округлением до сотых. Может быть null
+	color_id int not null references car_shop.colors(id) -- 	цвет машины - ВК на таблицу colors
 );
 
 create table car_shop.sales_info( --		создание таблицы с информацией о продажах
@@ -69,43 +69,42 @@ create table car_shop.sales_info( --		создание таблицы с инф�
 
 --заполнение рабочих таблиц
 
-INSERT INTO car_shop.buyers(buyer_name, phone) -- 	таблица покупателей
+INSERT INTO car_shop.buyers(buyer_name, phone) -- 		таблица покупателей
 select distinct person_name, phone
 from raw_data.sales;
 
-insert into car_shop.countries(country) -- 			таблица стран
+insert into car_shop.countries(country) -- 				таблица стран
 select distinct brand_origin
 from raw_data.sales
 where brand_origin is not null;
 
-insert into car_shop.colors (color) -- 				таблица цветов
+insert into car_shop.colors(color) -- 					таблица цветов
 select distinct split_part(auto, ', ', 2)
 from raw_data.sales;
 
-insert into car_shop.brands (brand_name, country_id) -- таблица марок
+insert into car_shop.brands(brand_name, country_id) -- 	таблица марок
 select distinct split_part(raw_data.sales.auto, ' ', 1), car_shop.countries.id
 from raw_data.sales
 left join car_shop.countries on raw_data.sales.brand_origin = car_shop.countries.country; 
 
-insert into car_shop.cars (car_name, color_id) -- 		таблица машин
-select distinct trim(split_part(split_part(auto, ', ', 1), ' ', 2) || ' ' || split_part(split_part(auto, ', ', 1), ' ', 3)), car_shop.colors.id
+insert into car_shop.car_models(car_name) -- 	таблица c моделями машин
+select distinct trim(split_part(split_part(auto, ', ', 1), ' ', 2) || ' ' || split_part(split_part(auto, ', ', 1), ' ', 3))
 from raw_data.sales
 left join car_shop.colors on split_part(raw_data.sales.auto, ', ', 2) = car_shop.colors.color;
 
-insert into car_shop.cars_info (car_id, brand_id, gasoline_consumption) -- 			таблица с информацией о машинах
-select distinct car_shop.cars.id, car_shop.brands.id, raw_data.sales.gasoline_consumption
+insert into car_shop.cars_info (car_id, brand_id, gasoline_consumption, color_id) -- 	таблица с информацией о машинах
+select distinct car_shop.car_models.id, car_shop.brands.id, raw_data.sales.gasoline_consumption, car_shop.colors.id
 from raw_data.sales
-left join car_shop.cars on trim(split_part(split_part(auto, ', ', 1), ' ', 2) || ' ' || split_part(split_part(auto, ', ', 1), ' ', 3)) = car_shop.cars.car_name
-left join car_shop.brands on split_part(auto, ' ', 1) = car_shop.brands.brand_name;
+left join car_shop.car_models on trim(split_part(split_part(auto, ', ', 1), ' ', 2) || ' ' || split_part(split_part(auto, ', ', 1), ' ', 3)) = car_shop.car_models.car_name
+left join car_shop.brands on split_part(auto, ' ', 1) = car_shop.brands.brand_name
+left join car_shop.colors on split_part(raw_data.sales.auto, ', ', 2) = car_shop.colors.color;
 
-insert into car_shop.sales_info (car_info_id, buyer_id, date, price, discount) -- 	таблица с информацией о продажах
+insert into car_shop.sales_info (car_info_id, buyer_id, date, price, discount) -- таблица с информацией о продажах машин
 select distinct ci.id, b.id, date, price, discount
 from raw_data.sales r
-join car_shop.cars_info ci on 
-	ci.brand_id = (select id from car_shop.brands where brand_name = split_part(r.auto, ' ', 1))
-	and ci.car_id = (select id from car_shop.cars where 
-			car_name = trim(split_part(split_part(r.auto, ', ', 1), ' ', 2) || ' ' || split_part(split_part(r.auto, ', ', 1), ' ', 3))
-			and color_id = (select id from car_shop.colors where color = split_part(r.auto, ', ', 2)))
+join car_shop.cars_info ci on ci.brand_id = (select id from car_shop.brands where brand_name = split_part(r.auto, ' ', 1))
+and ci.car_id = (select id from car_shop.car_models where car_name = trim(split_part(split_part(r.auto, ', ', 1), ' ', 2) || ' ' || split_part(split_part(r.auto, ', ', 1), ' ', 3)))
+and ci.color_id = (select id from car_shop.colors where color = split_part(r.auto, ', ', 2))
 join car_shop.buyers b on b.buyer_name = r.person_name and b.phone = r.phone;
 
 --задание 1
@@ -134,10 +133,10 @@ group by month
 order by month;
 
 
--- задание 4
+--задание 4
 
-select b.buyer_name as person, string_agg(br.brand_name || ' ' || c.car_name, ', ') as cars
-from car_shop.sales_info s, car_shop.buyers b, car_shop.cars_info ci, car_shop.cars c, car_shop.brands br
+select b.buyer_name as person, string_agg(br.brand_name || ' ' || c.car_name, ', ') as car_models
+from car_shop.sales_info s, car_shop.buyers b, car_shop.cars_info ci, car_shop.car_models c, car_shop.brands br
 where s.buyer_id = b.id and s.car_info_id = ci.id and ci.car_id = c.id and ci.brand_id = br.id
 group by b.buyer_name
 order by b.buyer_name;
