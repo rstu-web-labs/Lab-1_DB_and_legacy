@@ -2,12 +2,12 @@ create schema raw_data;
 
 create table raw_data.sales (
   id SERIAL primary key not null,
-  auto varchar(200) not null,
+  auto varchar(210) not null,
   gasoline_consumption DECIMAL(3,1),
   price DECIMAL(15, 8) not null,
   data date not null,
   person_name VARCHAR(200) not null,
-  phone VARCHAR(20) not null,
+  phone VARCHAR(50) not null,
   discount DECIMAL(4,2),
   brand_origin VARCHAR(60)
 );
@@ -21,28 +21,28 @@ create schema car_shop;
 
 create table car_shop.color(
        id serial primary key,
-       color varchar(10) not null unique
+       color varchar(50) not null unique
 );
 
 create table car_shop.country(
        id serial primary key,
-       country varchar(15) not null unique
+       country varchar(60) not null unique
 );
 
 create table car_shop.model(
        id serial primary key,
-       model varchar(10) not null unique
+       model varchar(100) not null unique
 );
 
 create table car_shop.client(
        id serial primary key,
-       name varchar(50),
-       phone varchar(30)
+       name varchar(100),
+       phone varchar(50)
 );
 
 create table car_shop.brand(
        id serial primary key,
-       brand varchar(20) not null,
+       brand varchar(50) not null,
        id_country int references car_shop.country(id) on delete restrict
 
 );
