@@ -3,8 +3,8 @@ create schema raw_data;--создали схему, где будем храни
 create table raw_data.sales (
   id INT not null,--целочисленный тип данных, т.к. переносим id
   auto VARCHAR(100) not null,--строковый тип, т.к. переносим название, модель и цвет текстом
-  gasoline_consumption DECIMAL,--вещественный тип, позволяет хранить данные с плавающей точкой, точнее чем float
-  price DECIMAL not null,--цена, дробное число
+  gasoline_consumption DECIMAL(5,2),--вещественный тип, позволяет хранить данные с плавающей точкой, точнее чем float
+  price DECIMAL(10,2) not null,--цена, дробное число
   date DATE not null,--хранит дату в формате гггг.мм.дд
   person VARCHAR(100) not null,
   phone VARCHAR(100) not null,--подходит varchar, т.к. в сырых данных представлены разные форматы телефонных номеров
@@ -12,11 +12,11 @@ create table raw_data.sales (
   brand_origin VARCHAR(50)--название страны-производителя
 );
 
-COPY sales --скопировали данные файла в таблицу сырых данных
+COPY raw_data.sales --скопировали данные файла в таблицу сырых данных
 FROM '/tmp/cars.csv'
 WITH csv header 
-null 'null';
-
+null 'null'
+delimiter ',';
 create schema car_shop;--создали схему с таблицами для нормализации данных
 
 create table car_shop.color (
@@ -39,7 +39,7 @@ create table car_shop.brand (
   foreign key(country_id)
   references car_shop.brand_origin(id)
   on update cascade 
-  on delete cascade
+  on delete restrict
 );
 
 
@@ -51,8 +51,8 @@ create table car_shop.model (
   foreign key(brand_id) 
   references car_shop.brand(id)
   on update cascade
-  on delete cascade,
-  gasoline_consumption DECIMAL 
+  on delete restrict,
+  gasoline_consumption DECIMAL(5,2)
 );
 
 
@@ -69,7 +69,7 @@ create table car_shop.auto (
   foreign key(color_id) 
   references car_shop.color(id)
   on update cascade
-  on delete cascade
+  on delete restrict
 );
 
 create table car_shop.customer (
@@ -92,9 +92,9 @@ create table car_shop.deal (
   foreign key(customer_id) 
   references car_shop.customer(id)
   on update cascade
-  on delete cascade,
+  on delete restrict,
   date date not null,
-  price decimal not null,
+  price decimal(10,2) not null,
   discount int not null
 ); 
 
