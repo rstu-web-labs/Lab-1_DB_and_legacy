@@ -18,13 +18,13 @@ CREATE SCHEMA car_shop;
 
 CREATE TABLE car_shop.persons (  -- таблица клиентов
   person_id SERIAL PRIMARY KEY,  -- первичный ключ
-  person_name VARCHAR(100) UNIQUE,  -- символьный тип для имени
+  person_name VARCHAR(100),  -- символьный тип для имени
   phone VARCHAR(25) UNIQUE  -- символьный тип для телефона
 );
 
 CREATE TABLE car_shop.colors (  -- таблица цветов
   id SERIAL PRIMARY KEY, -- первичный ключ
-  color VARCHAR(30)  -- символьный тип для названия цвета
+  color VARCHAR(30) UNIQUE -- символьный тип для названия цвета
 );
 
 CREATE TABLE car_shop.country (  -- таблица стран
@@ -32,33 +32,27 @@ CREATE TABLE car_shop.country (  -- таблица стран
   country_name VARCHAR(70) UNIQUE  -- символьный тип для названия страны
 );
 
-CREATE TABLE car_shop.models_list (  -- таблица моделей
-  model_id SERIAL PRIMARY KEY,  -- первичный ключ
-  model VARCHAR(15) unique,  -- символьный тип для названия модели
-  gasoline_consumption float4 -- вещественный тип для расхода топлива
-);
-
 CREATE TABLE car_shop.brands (  -- таблица брендов
   brand_id SERIAL PRIMARY KEY,  -- первичный ключ
   brand_name VARCHAR(20) UNIQUE, -- символьный тип для названия бренда
   brand_country_id INTEGER,  -- целочисленный тип для внешнего ключа страны бренда
-  constraint fk_brand_country_id foreign key (brand_country_id) REFERENCES country (country_id)ON DELETE SET NULL
+  constraint fk_brand_country_id foreign key (brand_country_id) REFERENCES car_shop.country (country_id) ON DELETE SET NULL
+);
+
+CREATE TABLE car_shop.models_list (  -- таблица моделей
+  model_id SERIAL PRIMARY KEY,  -- первичный ключ
+  model VARCHAR(15) unique,  -- символьный тип для названия модели
+  brand_id INTEGER,  -- целочисленный тип для внешнего ключа бренда
+  gasoline_consumption DECIMAL(5, 2), -- вещественный тип для расхода топлива
+  CONSTRAINT fk_brand_id FOREIGN KEY (brand_id) REFERENCES car_shop.brands (brand_id) ON DELETE SET NULL
 );
 
 CREATE TABLE car_shop.cars (  -- таблица машин
   car_id SERIAL PRIMARY KEY,  -- первичный ключ
   model_list_id INTEGER,  -- целочисленный тип для внешнего ключа моделей
-  brand_id INTEGER,  -- целочисленный тип для внешнего ключа бренда
-  CONSTRAINT fk_model_id FOREIGN KEY (model_list_id) REFERENCES models_list (model_id)ON DELETE SET NULL,
-  CONSTRAINT fk_brand_id FOREIGN KEY (brand_id) REFERENCES brands (brand_id)ON DELETE SET NULL
-);
-
-CREATE TABLE car_shop.cars_eque (  -- таблица комплектаций машин
-  car_eque_id SERIAL PRIMARY KEY,  -- первичный ключ
-  car_id INTEGER,  -- целочисленный тип для внешнего ключа машины
   color_id INTEGER,  -- целочисленный тип для внешнего ключа цветов
-  CONSTRAINT fk_car_id FOREIGN KEY (car_id) REFERENCES cars (car_id) ON DELETE SET NULL,
-  CONSTRAINT fk_color FOREIGN KEY (color_id) REFERENCES colors (id) ON DELETE SET NULL
+  CONSTRAINT fk_model_id FOREIGN KEY (model_list_id) REFERENCES car_shop.models_list (model_id)ON DELETE SET NULL,
+  CONSTRAINT fk_color FOREIGN KEY (color_id) REFERENCES car_shop.colors (id) ON DELETE SET NULL
 );
 
 CREATE TABLE car_shop.sales (  -- таблица продаж
@@ -68,8 +62,8 @@ CREATE TABLE car_shop.sales (  -- таблица продаж
   discount NUMERIC(4, 2),  -- числовой тип для скидки
   date DATE,  -- тип даты для даты
   person_id INTEGER,  -- целочисленный тип для внешнего ключа клиента
-  CONSTRAINT fk_sold_car_id FOREIGN KEY (sold_car_id) REFERENCES cars_eque (car_eque_id) ON DELETE SET NULL,
-  CONSTRAINT fk_person_id FOREIGN KEY (person_id) REFERENCES persons (person_id) ON DELETE SET NULL
+  CONSTRAINT fk_sold_car_id FOREIGN KEY (sold_car_id) REFERENCES car_shop.cars (car_id) ON DELETE NO ACTION,
+  CONSTRAINT fk_person_id FOREIGN KEY (person_id) REFERENCES car_shop.persons (person_id) ON DELETE SET NULL
 );
 
 INSERT INTO car_shop.persons (person_name, phone) -- заполняем таблицу клиентов
@@ -82,48 +76,40 @@ FROM raw_data.sales
 where brand_origin is not null;
 
 INSERT INTO car_shop.colors (color) -- заполняем таблицу цветов машин
-SELECT DISTINCT split_part(substring(auto from '[^,]+$'), ' ', 2) AS color
-FROM raw_data.sales;
-
-INSERT INTO car_shop.models_list (model, gasoline_consumption) -- заполняем таблицу моделей машин
-SELECT DISTINCT substring(auto from '\w+\s(.*?),') AS model, gasoline_consumption
-FROM raw_data.sales;
+SELECT DISTINCT split_part(substring(s.auto from '[^,]+$'), ' ', 2) AS color
+FROM raw_data.sales s;
 
 INSERT INTO car_shop.brands (brand_name, brand_country_id)  -- заполняем таблицу брендов
 SELECT
-	DISTINCT split_part(auto, ' ', 1) AS brand_name,
-	(SELECT country_id FROM country WHERE country_name = s.brand_origin)
+	DISTINCT split_part(s.auto, ' ', 1) AS brand_name,
+	(SELECT country_id FROM car_shop.country WHERE country_name = s.brand_origin)
 FROM raw_data.sales s;
 
-INSERT INTO car_shop.cars (brand_id, model_list_id)  -- заполняем таблицу машин
-select DISTINCT
-    (SELECT brand_id FROM brands WHERE brand_name = split_part(auto, ' ', 1)),
-    (SELECT model_id FROM models_list WHERE model = substring(auto from '\w+\s(.*?),'))
-FROM
-    raw_data.sales s;
+INSERT INTO car_shop.models_list (model, brand_id, gasoline_consumption) -- заполняем таблицу моделей машин
+SELECT DISTINCT
+    substring(s.auto from '\w+\s(.*?),') AS model,
+    (SELECT brand_id FROM car_shop.brands WHERE brand_name = split_part(auto, ' ', 1)),
+    gasoline_consumption
+FROM raw_data.sales s;
 
-INSERT INTO car_shop.cars_eque (car_id, color_id) -- заполняем таблицу комплектаций машин
+INSERT INTO car_shop.cars (model_list_id, color_id)  -- заполняем таблицу машин
 select DISTINCT
-    (SELECT car_id FROM cars ca
-    	inner join car_shop.brands br ON ca.brand_id = br.brand_id
-    	inner join car_shop.models_list ml ON ca.model_list_id = ml.model_id
-    	WHERE ml.model = substring(auto from '\w+\s(.*?),')),
-    (SELECT id FROM colors WHERE color = split_part(substring(auto from '[^,]+$'), ' ', 2))
+    (SELECT model_id FROM car_shop.models_list WHERE model = substring(s.auto from '\w+\s(.*?),')),
+    (SELECT id FROM car_shop.colors WHERE color = split_part(substring(s.auto from '[^,]+$'), ' ', 2))
 FROM
     raw_data.sales s;
 
 INSERT INTO car_shop.sales (sold_car_id, price, discount, date, person_id) -- заполняем таблицу продаж
 select
-	(select car_eque_id from cars_eque eq
-		inner join car_shop.colors cl ON eq.color_id = cl.id
-		inner join car_shop.cars ca ON eq.car_id = ca.car_id
+	(select car_id from car_shop.cars ca
+		inner join car_shop.colors cl ON ca.color_id = cl.id
     	inner join car_shop.models_list ml ON ca.model_list_id = ml.model_id
-    	WHERE ml.model = substring(auto from '\w+\s(.*?),')
-    	and cl.color = split_part(substring(auto from '[^,]+$'), ' ', 2)),
+    	WHERE ml.model = substring(s.auto from '\w+\s(.*?),')
+    	and cl.color = split_part(substring(s.auto from '[^,]+$'), ' ', 2)),
 	s.price,
 	s.discount,
 	s.date,
-	(SELECT person_id FROM persons WHERE
+	(SELECT person_id FROM car_shop.persons WHERE
 		persons.person_name = s.person)
 FROM
     raw_data.sales s;
@@ -131,40 +117,39 @@ FROM
 -- заполнение выполнено, можно начинать аналитические скрипты (─‿‿─)
 -- сприпт 1:
 SELECT
-    (COUNT(model_id) FILTER (WHERE gasoline_consumption IS NULL) * 100 / COUNT(model_id)) AS percent
+    (COUNT(ml.model_id) FILTER (WHERE ml.gasoline_consumption IS NULL) * 100 / COUNT(ml.model_id)) AS percent
 FROM
-    car_shop.models_list;
+    car_shop.models_list ml;
 
 -- сприпт 2:
 SELECT
-    brand_name,
+    br.brand_name,
     EXTRACT(year FROM date) AS year,
     ROUND(AVG(price)::numeric, 2) AS price_avg
-from car_shop.sales, car_shop.cars_eque eq
-	inner join car_shop.cars ca ON eq.car_id = ca.car_id
-	inner join car_shop.brands br ON ca.brand_id = br.brand_id
-GROUP by brand_name, year
-ORDER by brand_name, year ASC;
+from car_shop.sales, car_shop.cars ca
+	inner join car_shop.models_list ml ON ca.model_list_id = ml.model_id
+	inner join car_shop.brands br ON ml.brand_id = br.brand_id
+GROUP by br.brand_name, year
+ORDER by br.brand_name, year ASC;
 
 -- сприпт 3:
 SELECT
     EXTRACT(month FROM date) AS month,
     EXTRACT(year FROM date) AS year,
-    ROUND(AVG(price)::numeric, 2) AS price_avg
-from car_shop.sales
+    ROUND(AVG(s.price)::numeric, 2) AS price_avg
+from car_shop.sales s
 where EXTRACT(year FROM date) = 2022
 GROUP by month, year
 order by month ASC;
 
 -- сприпт 4:
 SELECT p.person_name AS person,
-STRING_AGG(b.brand_name || ' ' || m.model, ', ') AS cars
-FROM sales s
-JOIN cars_eque ce ON s.sold_car_id = ce.car_eque_id
-JOIN cars c ON ce.car_id = c.car_id
-JOIN models_list m ON c.model_list_id = m.model_id
-JOIN brands b ON c.brand_id = b.brand_id
-JOIN persons p ON s.person_id = p.person_id
+STRING_AGG(br.brand_name || ' ' || m.model, ', ') AS cars
+FROM car_shop.sales s
+JOIN car_shop.cars c ON s.sold_car_id = c.car_id
+JOIN car_shop.models_list m ON c.model_list_id = m.model_id
+join car_shop.brands br ON m.brand_id = br.brand_id
+JOIN car_shop.persons p ON s.person_id = p.person_id
 GROUP BY p.person_name
 ORDER BY p.person_name;
 
@@ -173,15 +158,15 @@ SELECT
 	co.country_name as brand_origin,
 	MAX(s.price + (s.price * s.discount / 100)) AS price_max,
 	MIN(s.price + (s.price * s.discount / 100)) AS price_min
-FROM sales s
-JOIN cars_eque eq ON s.sold_car_id = eq.car_eque_id
-JOIN cars c ON eq.car_id = c.car_id
-JOIN brands b ON c.brand_id = b.brand_id
-JOIN country co ON b.brand_country_id = co.country_id
+FROM car_shop.sales s
+JOIN car_shop.cars c ON s.sold_car_id = c.car_id
+JOIN car_shop.models_list m ON c.model_list_id = m.model_id
+join car_shop.brands br ON m.brand_id = br.brand_id
+JOIN car_shop.country co ON br.brand_country_id = co.country_id
 GROUP BY co.country_name
 ORDER BY co.country_name ASC;
 
 -- сприпт 6:
-SELECT COUNT(person_id) AS persons_from_usa_count
-FROM persons
-WHERE phone LIKE '+1%';
+SELECT COUNT(p.person_id) AS persons_from_usa_count
+FROM car_shop.persons p
+WHERE p.phone LIKE '+1%';
