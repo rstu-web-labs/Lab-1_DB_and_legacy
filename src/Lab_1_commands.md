@@ -10,7 +10,7 @@ CREATE TABLE raw_data.sales (
     date DATE,
     person_name TEXT,
     phone TEXT,
-    discount INT,
+    discount DECIMAL(5, 2),
     brand_origin TEXT
 );
 
@@ -22,12 +22,14 @@ CREATE SCHEMA car_shop;
 CREATE TABLE car_shop.brands (
     brand_id SERIAL PRIMARY KEY,
     brand_name VARCHAR(100) NOT NULL,
-    brand_origin VARCHAR(100)
+    brand_origin VARCHAR(100),
+    UNIQUE(brand_name, brand_origin)
 );
 
 CREATE TABLE car_shop.colors (
     color_id SERIAL PRIMARY KEY,
-    color_name VARCHAR(50) NOT NULL
+    color_name VARCHAR(50) NOT NULL,
+    UNIQUE(color_name)
 );
 
 CREATE TABLE car_shop.cars (
@@ -35,8 +37,8 @@ CREATE TABLE car_shop.cars (
     brand_id INT REFERENCES car_shop.brands(brand_id),
     model VARCHAR(100) NOT NULL,
     color_id INT REFERENCES car_shop.colors(color_id),
-    gasoline_consumption FLOAT,
-    UNIQUE(brand_id, model, color_id)
+    gasoline_consumption DECIMAL(5, 2),
+    UNIQUE(model, color_id)
 );
 
 CREATE TABLE car_shop.sales (
@@ -45,7 +47,7 @@ CREATE TABLE car_shop.sales (
     customer_id INT REFERENCES car_shop.customers(customer_id) ON DELETE CASCADE,
     sale_date DATE NOT NULL,
     price MONEY NOT NULL,
-    discount INT
+    discount DECIMAL(5, 2) NOT NULL
 );
 
 CREATE TABLE car_shop.customers (
@@ -53,7 +55,6 @@ CREATE TABLE car_shop.customers (
     full_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20) UNIQUE NOT NULL
 );
-
 
 INSERT INTO car_shop.brands (brand_name, brand_origin)
 SELECT DISTINCT split_part(auto, ' ', 1), brand_origin
