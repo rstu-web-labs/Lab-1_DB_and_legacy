@@ -1,4 +1,4 @@
-/*create schema raw_data;
+create schema raw_data;
 
 create table raw_data.sales (
 	id INT ,
@@ -11,12 +11,9 @@ create table raw_data.sales (
 	discount numeric,
 	brand_origin VARCHAR(50)
 );
-*/
+
 COPY raw_data.sales(id, auto, gasoline_consumption, price, date, person_name, phone, discount, brand_origin) FROM '/home/cars.csv' DELIMITER ',' CSV HEADER NULL 'null';
 
-
---select * from raw_data.sales s ;
-/*
 create schema car_shop;
 
 create table car_shop.country (
@@ -74,10 +71,6 @@ from raw_data.sales
 where brand_origin is not null
 group by brand_origin ;
 
-
---select c.brand_origin  from car_shop.country c ;
-
-
 insert into car_shop.brand(id_country, brand)
 select distinct
 case
@@ -89,23 +82,16 @@ from raw_data.sales s
 left join car_shop.country c on c.brand_origin = s.brand_origin or s.brand_origin is null
 group by c.id, brand, s.brand_origin, s.auto;
 
---select * from car_shop.brand b ;
-
-
 insert into car_shop.model(model)
 select SUBSTRING(auto, POSITION(' ' in auto) + 1, POSITION(',' in auto) - POSITION(' ' in auto) - 1) as model
 from raw_data.sales 
 group by model;
 
---select * from car_shop.model m ;
 
 insert into car_shop.color(color)
 select SUBSTRING(auto, POSITION(',' in auto) + 2) as color
 from raw_data.sales 
 group by color;
-
---select * from car_shop.color c ;
-
 
 insert into car_shop.cars (id_brand, id_model, id_color, gasoline_consumption)
 select b.id,  m.id, c.id, s.gasoline_consumption 
@@ -118,7 +104,6 @@ left join car_shop.color c
 on c.color = substring(s.auto, position(',' in s.auto) + 2)
 group by b.id,  m.id, c.id, s.gasoline_consumption ;
 
---select * from car_shop.cars c  ;
 
 insert into car_shop.clients (name, surname, phone)
 select 
@@ -130,9 +115,6 @@ group by
 substring(s.person_name, 1, position (' ' in s.person_name) - 1),
 substring(s.person_name, position (' ' in s.person_name) + 1),
 s.phone ;
-
---select *  from car_shop.clients cl ;
-
 
 insert into car_shop.sales(id_car, id_buyer, price, discount, "date")
 select c.id , c3.id, s.price, s.discount , s."date"
@@ -215,4 +197,3 @@ order by c2.brand_origin;
 select count(*) as persons_from_usa_count 
 from car_shop.clients 
 where phone like '+1%';
-*/
