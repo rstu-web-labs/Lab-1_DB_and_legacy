@@ -25,9 +25,9 @@ create table raw_data.sales (
 
 --создание таблицы страна производства
 
-CREATE TABLE car_shop.counry (
+CREATE TABLE car_shop.country (
   id_brand_origin serial primary key not null,
-  name_country varchar(11)
+  name_country varchar(39)
 );
 
 --создание таблицы покупатель
@@ -43,47 +43,63 @@ CREATE TABLE car_shop.person (
 
 create table car_shop.color (
 	id_color serial primary key not null,
-	color varchar(20) not null
+	color varchar(50) unique not null
 );
 
---создание таблицы модель
-create table car_shop.model (
-	id_model serial primary key not null,
-	id_brand integer references car_shop.brand (id_brand),
-	model varchar(30) not null,
-	gasoline_consumtion decimal check (gasoline_consumtion < 10)
-);
 
 --создание таблицы бренд
 create table car_shop.brand (
 	id_brand serial primary key not null,
-	id_counry integer references car_shop.counry (id_brand_origin),
-	brand_name varchar(30) not null
+	id_country integer unique references car_shop.country (id_brand_origin)
+	on update cascade
+	on delete restrict,
+	brand_name varchar(30) unique not null
+);
+
+
+--создание таблицы модель
+create table car_shop.model (
+	id_model serial primary key not null,
+	id_brand integer references car_shop.brand (id_brand)
+	on update cascade
+	on delete restrict,
+	model varchar(30) not null,
+	gasoline_consumtion decimal (5,2)
 );
 
 
 --создание таблицы авто
 create table car_shop.auto (
 	id_auto serial primary key not null,
-	id_model integer references car_shop.model (id_model) not null,
+	id_model integer references car_shop.model (id_model)
+	on update cascade
+	on delete restrict,
 	id_color integer references car_shop.color (id_color)
+	on update cascade
+	on delete restrict
 );
 
 --создание таблицы сделка
 create table car_shop.transaction (
 	id_transaction serial primary key not null,
-	price decimal not null,
+	price decimal (10,2) not null,
 	data_transaction date not null,
-	discount integer
+	discount decimal (3,1)
 );
 
 
 --создание таблицы продажи
 create table car_shop.sale (
 	id_sale serial primary key not null,
-	id_transaction integer references car_shop.transaction (id_transaction) not null,
-	id_auto integer references car_shop.auto (id_auto) not null,
-	id_person integer references car_shop.person (id_person) not null
+	id_transaction integer references car_shop.transaction (id_transaction)
+	on update cascade
+	on delete restrict,
+	id_auto integer references car_shop.auto (id_auto)
+	on update cascade
+	on delete restrict,
+	id_person integer references car_shop.person (id_person)
+	on update cascade
+	on delete restrict
 );
 
 
@@ -97,20 +113,20 @@ null 'null';
 --ЗАПОЛНЕНИЕ
 
 --заполнение страны производителя
-INSERT INTO car_shop.counry (name_country)
+INSERT INTO car_shop.country (name_country)
 SELECT DISTINCT brand_origin
 FROM raw_data.sales
 WHERE brand_origin IS NOT NULL;
 
 
 --заполнение бренда 
-insert into car_shop.brand (id_counry, brand_name)
+insert into car_shop.brand (id_country, brand_name)
 select distinct 
 	t2.id_brand_origin,
 	TRIM(SPLIT_PART(t1.auto, ' ', 1)) as brand_name
 from 
 	raw_data.sales t1 
-	left join car_shop.counry t2 on t2.name_country = t1.brand_origin;
+	left join car_shop.country t2 on t2.name_country = t1.brand_origin;
 
 --заполнение модели
 insert into car_shop.model (model, id_brand, gasoline_consumtion)
@@ -277,7 +293,7 @@ JOIN
 JOIN
     car_shop.brand b ON m.id_brand = b.id_brand
 JOIN
-    car_shop.counry c ON b.id_counry = c.id_brand_origin
+    car_shop.country c ON b.id_country = c.id_brand_origin
 GROUP BY
     c.name_country
 ORDER BY
