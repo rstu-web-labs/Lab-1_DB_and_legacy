@@ -5,12 +5,12 @@ CREATE SCHEMA raw_data;
 CREATE TABLE raw_data.sales (
     id SERIAL PRIMARY KEY,
     auto TEXT,
-    gasoline_consumption FLOAT,
-    price MONEY,
+    gasoline_consumption FLOAT CHECK (gasoline_consumption >= 0),
+    price MONEY CHECK (price >= 0),
     date DATE,
     person_name TEXT,
     phone TEXT,
-    discount DECIMAL(5, 2),
+    discount INT CHECK (discount >= 0),
     brand_origin TEXT
 );
 
@@ -37,7 +37,7 @@ CREATE TABLE car_shop.cars (
     brand_id INT REFERENCES car_shop.brands(brand_id),
     model VARCHAR(100) NOT NULL,
     color_id INT REFERENCES car_shop.colors(color_id),
-    gasoline_consumption DECIMAL(5, 2),
+    gasoline_consumption DECIMAL(5, 2) CHECK (gasoline_consumption >= 0),
     UNIQUE(model, color_id)
 );
 
@@ -46,8 +46,9 @@ CREATE TABLE car_shop.sales (
     car_id INT REFERENCES car_shop.cars(car_id) ON DELETE CASCADE,
     customer_id INT REFERENCES car_shop.customers(customer_id) ON DELETE CASCADE,
     sale_date DATE NOT NULL,
-    price MONEY NOT NULL,
-    discount DECIMAL(5, 2) NOT NULL
+    price MONEY NOT NULL CHECK (price >= 0),
+    discount DECIMAL(5, 2) NOT NULL CHECK (discount >= 0),
+    UNIQUE(car_id, customer_id, sale_date)
 );
 
 CREATE TABLE car_shop.customers (
