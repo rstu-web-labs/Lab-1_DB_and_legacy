@@ -29,16 +29,22 @@ CSV HEADER;
 
 CREATE SCHEMA car_shop;
 
+CREATE TABLE car_shop.origins (
+	id SERIAL PRIMARY KEY, -- уникальный идентификатор, инкремент
+	origin VARCHAR(127) UNIQUE NOT NULL -- страна
+);
+
 CREATE TABLE car_shop.brands (
     id SERIAL PRIMARY KEY, -- уникальный идентификатор, инкремент
+    origin_id INT, -- идентификатор страны, ВК от origins
     brand VARCHAR(63) NOT NULL, -- бренд
-    origin VARCHAR(127) -- страна
+    FOREIGN KEY (origin_id) REFERENCES car_shop.origins(id)
 );
 
 CREATE TABLE car_shop.models (
 	id SERIAL PRIMARY KEY, -- уникальный идентификатор, инкремент
-	model VARCHAR(63) NOT NULL, -- модель
 	brand_id INT NOT NULL, -- идентификатор бренда, ВК от brands
+	model VARCHAR(63) NOT NULL, -- модель
 	gasoline_consumption DECIMAL(3,1),
 	FOREIGN KEY (brand_id) REFERENCES car_shop.brands(id)
 );
@@ -56,29 +62,38 @@ CREATE TABLE car_shop.persons (
 
 CREATE TABLE car_shop.sale (
     id SERIAL PRIMARY KEY, -- уникальный идентификатор, инкремент
-    model_id INT, -- идентификатор модели, ВК от models
-    color_id INT, -- идентификатор цвета, ВК от colors
+    model_id INT NOT NULL, -- идентификатор модели, ВК от models
+    color_id INT NOT NULL, -- идентификатор цвета, ВК от colors
+    person_id INT NOT NULL, -- идентификатор покупателя, ВК от persons
     price DECIMAL(19,12), -- цена авто
     date DATE NOT NULL, -- дата
-    person_name VARCHAR(127) NOT NULL, -- фио покупателя
     discount DECIMAL(5,2), -- скидка в процентах
     FOREIGN KEY (model_id) REFERENCES car_shop.models(id),
-    FOREIGN KEY (color_id) REFERENCES car_shop.colors(id)
+    FOREIGN KEY (color_id) REFERENCES car_shop.colors(id),
+    FOREIGN KEY (person_id) REFERENCES car_shop.persons(id)
 );
 
 -- Заполнение таблиц данными
 
-INSERT INTO car_shop.brands (brand, origin)
-SELECT DISTINCT
-    split_part(auto, ' ', 1) AS brand,
-    brand_origin AS origin
-FROM raw_data.sales;
+INSERT INTO car_shop.origins (origin)
+SELECT DISTINCT 
+	brand_origin
+FROM raw_data.sales
+WHERE brand_origin IS NOT NULL;
 ;
 
-INSERT INTO car_shop.models (model, brand_id, gasoline_consumption)
+INSERT INTO car_shop.brands (origin_id, brand)
 SELECT DISTINCT
+	o.id AS origin_id,
+    split_part(s.auto, ' ', 1) AS brand
+FROM raw_data.sales s
+LEFT JOIN car_shop.origins o ON s.brand_origin = o.origin;
+;
+
+INSERT INTO car_shop.models (brand_id, model, gasoline_consumption)
+SELECT DISTINCT
+	b.id AS brand_id,
     SUBSTRING(s.auto FROM POSITION(' ' IN s.auto) + 1 FOR POSITION(',' IN s.auto) - POSITION(' ' IN s.auto) - 1) AS model,
-    b.id AS brand_id,
     s.gasoline_consumption
 FROM raw_data.sales s
 JOIN car_shop.brands b ON split_part(s.auto, ' ', 1) = b.brand;
@@ -97,18 +112,19 @@ SELECT DISTINCT
 FROM raw_data.sales;
 ;
 
-INSERT INTO car_shop.sale (model_id, color_id, price, date, person_name, discount)
+INSERT INTO car_shop.sale (model_id, color_id, person_id, price, date, discount)
 SELECT
     m.id AS model_id,
     c.id AS color_id,
+    p.id AS person_id,
     s.price,
     s.date,
-    s.person_name,
     s.discount
 FROM raw_data.sales s
 JOIN car_shop.models m ON SUBSTRING(s.auto FROM POSITION(' ' IN s.auto) + 1 FOR POSITION(',' IN s.auto) - POSITION(' ' IN s.auto) - 1) = m.model
 JOIN car_shop.brands b ON m.brand_id = b.id
-JOIN car_shop.colors c ON split_part(s.auto, ',', 2) = c.color;
+JOIN car_shop.colors c ON split_part(s.auto, ',', 2) = c.color
+JOIN car_shop.persons p ON s.person_name = p.person_name AND s.phone = p.phone;
 ;
 
 -- Задание №1
@@ -145,7 +161,7 @@ WHERE EXTRACT(YEAR FROM s.date) = 2022
 GROUP BY month, year
 ORDER BY month, year;
 ;
-   
+
 -- Задание №4
 SELECT 
     p.person_name AS person,
@@ -153,7 +169,7 @@ SELECT
 FROM 
     car_shop.sale s
 JOIN 
-    car_shop.persons p ON s.person_name = p.person_name
+    car_shop.persons p ON s.person_id = p.id
 JOIN 
     car_shop.models m ON s.model_id = m.id
 JOIN 
@@ -163,10 +179,10 @@ GROUP BY
 ORDER BY 
     p.person_name;
 ;
-   
+
 -- Задание №5
 SELECT 
-    b.origin AS brand_origin,
+    o.origin AS brand_origin,
     MAX(s.price * (1 - s.discount / 100.0)) AS price_max,
     MIN(s.price * (1 - s.discount / 100.0)) AS price_min
 FROM 
@@ -175,10 +191,12 @@ JOIN
     car_shop.models m ON s.model_id = m.id
 JOIN 
     car_shop.brands b ON m.brand_id = b.id
+JOIN 
+    car_shop.origins o ON b.origin_id = o.id
 GROUP BY 
-    b.origin;
+    o.origin;
 ;
-   
+
 -- Задание №6
 SELECT 
     COUNT(*) AS persons_from_usa_count
