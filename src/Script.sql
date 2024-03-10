@@ -44,8 +44,8 @@ CREATE TABLE car_shop.cars (
     color_id INT,
     model VARCHAR(255),
     gasoline_consumption DECIMAL(5,2),
-    CONSTRAINT fk_brand FOREIGN KEY (brand_id) REFERENCES car_shop.brands(brand_id) ON DELETE CASCADE,
-    CONSTRAINT fk_color FOREIGN KEY (color_id) REFERENCES car_shop.colors(color_id) ON DELETE CASCADE
+    CONSTRAINT fk_brand FOREIGN KEY (brand_id) REFERENCES car_shop.brands(brand_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_color FOREIGN KEY (color_id) REFERENCES car_shop.colors(color_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 INSERT INTO car_shop.cars (brand_id, color_id, model, gasoline_consumption)
