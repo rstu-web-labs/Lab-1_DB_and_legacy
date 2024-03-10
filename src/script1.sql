@@ -9,12 +9,12 @@ CREATE TABLE raw_data.sales (
     auto VARCHAR(63) NOT NULL, -- бренд, модель и цвет
     gasoline_consumption DECIMAL(3,1), -- число не может быть трехзначным
     	-- число с плавающей точкой, ограниченное до 1 знака после ,
-    price DECIMAL(19,12), -- число не может быть больше семизначной суммы
-    	-- число с плавающей точкой, ограниченное до 12 знаков после ,
+    price DECIMAL(19,2), -- число не может быть больше семизначной суммы
+    	-- число с плавающей точкой, ограниченное до 2 знаков после ,
     date DATE NOT NULL, -- дата, удобное хранение и обработка даты
     person_name VARCHAR(127) NOT NULL, -- фио
     phone VARCHAR(63) NOT NULL, -- номер телефона
-    discount DECIMAL(5,2) CHECK (discount >= 0 AND discount <= 100), 
+    CONSTRAINT CHECK (discount >= 0 AND discount <= 100), 
     	-- скидка в процентах, число не больше 100, ограниченное до двух знаков после ,
     brand_origin VARCHAR(127)
 );
@@ -51,7 +51,7 @@ CREATE TABLE car_shop.models (
 
 CREATE TABLE car_shop.colors (
     id SERIAL PRIMARY KEY, -- уникальный идентификатор, инкремент
-    color VARCHAR(63) NOT NULL -- цвет авто
+    color VARCHAR(63) UNIQUE NOT NULL -- цвет авто
 );
 
 CREATE TABLE car_shop.persons (
@@ -65,9 +65,10 @@ CREATE TABLE car_shop.sale (
     model_id INT NOT NULL, -- идентификатор модели, ВК от models
     color_id INT NOT NULL, -- идентификатор цвета, ВК от colors
     person_id INT NOT NULL, -- идентификатор покупателя, ВК от persons
-    price DECIMAL(19,12), -- цена авто
+    price DECIMAL(19,2), -- цена авто
     date DATE NOT NULL, -- дата
     discount DECIMAL(5,2), -- скидка в процентах
+    	CONSTRAINT CHECK (discount >= 0 AND discount <= 100), --проверка для скидки
     FOREIGN KEY (model_id) REFERENCES car_shop.models(id),
     FOREIGN KEY (color_id) REFERENCES car_shop.colors(id),
     FOREIGN KEY (person_id) REFERENCES car_shop.persons(id)
@@ -131,7 +132,7 @@ JOIN car_shop.persons p ON s.person_name = p.person_name AND s.phone = p.phone;
 SELECT 
     ROUND((COUNT(*) FILTER (WHERE gasoline_consumption IS NULL) * 100.0) / COUNT(*), 2) AS nulls_percentage_gasoline_consumption
 FROM 
-    raw_data.sales;
+    car_shop.models;
 ;
 
 -- Задание №2
