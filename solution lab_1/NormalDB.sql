@@ -19,7 +19,7 @@ create schema if not exists car_shop;
 
 create table if not exists car_shop.colors (
 idColor serial primary key,
-color varchar(20) unique null
+color varchar(20) unique not null
 );
 
 create table if not exists car_shop.marks(
@@ -29,14 +29,14 @@ marka varchar(30) unique not null
 
 create table if not exists car_shop.country (
 idCountry serial primary key,
-country varchar(60) null
+country varchar(60) unique not null
 );
 
 
 create table if not exists car_shop.models(
 idModel serial primary key,
 model varchar(30) unique not null,
-gasoline_consumption numeric unique null check (gasoline_consumption >= 0)
+gasoline_consumption numeric(3, 1) unique null check (gasoline_consumption >= 0)
 );
 
 create table if not exists car_shop.cars(
@@ -56,8 +56,8 @@ phone varchar(30) not null
 create table if not exists car_shop.sales(
 idSales serial primary key,
 idClient int not null references car_shop.clients(idClient) ON DELETE CASCADE,
-price numeric not null check (price >= 0),
-discount numeric null check (discount >= 0),
+price numeric(7, 2) not null check (price >= 0),
+discount numeric(2, 0) null check (discount >= 0),
 date date not null
 );
 
@@ -81,7 +81,8 @@ from raw_data.sales;
 
 insert into car_shop.country(country)
 select distinct brand_origin
-from raw_data.sales;
+from raw_data.sales
+where brand_origin is not null;
 
 insert into car_shop.models(model, gasoline_consumption) 
 select distinct trim(substring(auto, char_length(split_part(auto, ' ', 1)) + 1, char_length(auto) - char_length(split_part(auto, ' ', 1)) - char_length(split_part(auto, ',', 2)) - 1)), gasoline_consumption
@@ -107,7 +108,7 @@ join car_shop.cars b on
 trim(split_part(s.auto, ' ', 1)) = trim((select marka from car_shop.marks m where m.idmarka = b.idmarka)) and
 trim(split_part(s.auto, ',', 2)) = trim((select color from car_shop.colors c2 where c2.idcolor = b.idcolor)) and
 trim(substring(auto, char_length(split_part(auto, ' ', 1)) + 1, char_length(auto) - char_length(split_part(auto, ' ', 1)) - char_length(split_part(auto, ',', 2)) - 1)) = trim((select model from car_shop.models m where m.idmodel = b.idmodel))
-join car_shop.sales s2 on s.price  = s2.price and s."date" = s2."date"
+join car_shop.sales s2 on s.price  = s2.price and s."date" = s2."date";
 
 -- Аналитические скрипты
 
