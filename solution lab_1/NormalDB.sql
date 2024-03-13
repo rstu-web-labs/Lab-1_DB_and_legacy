@@ -41,9 +41,9 @@ gasoline_consumption numeric(3, 1) unique null check (gasoline_consumption >= 0)
 
 create table if not exists car_shop.cars(
 idCars serial primary key,
-idColor int not null references car_shop.colors(idColor) ON DELETE CASCADE,
-idMarka int not null references car_shop.marks(idMarka) ON DELETE CASCADE,
-idModel int not null references car_shop.models(idModel) ON DELETE CASCADE,
+idColor int not null references car_shop.colors(idColor) ON DELETE RESTRICT,
+idMarka int not null references car_shop.marks(idMarka) ON DELETE RESTRICT,
+idModel int not null references car_shop.models(idModel) ON DELETE RESTRICT,
 idCountry int references car_shop.country(idCountry)
 );
 
@@ -55,7 +55,7 @@ phone varchar(30) not null
 
 create table if not exists car_shop.sales(
 idSales serial primary key,
-idClient int not null references car_shop.clients(idClient) ON DELETE CASCADE,
+idClient int not null references car_shop.clients(idClient) ON DELETE RESTRICT,
 price numeric(7, 2) not null check (price >= 0),
 discount numeric(2, 0) null check (discount >= 0),
 date date not null
@@ -63,8 +63,8 @@ date date not null
 
 create table if not exists car_shop.autoInfo (
 idAuto serial primary key,
-idCars int not null references car_shop.cars(idCars) ON DELETE CASCADE,
-idSales int not null references car_shop.sales(idSales) ON DELETE CASCADE
+idCars int not null references car_shop.cars(idCars) ON DELETE RESTRICT ,
+idSales int not null references car_shop.sales(idSales) ON DELETE RESTRICT
 );
 
 insert into car_shop.colors(color)
@@ -132,17 +132,16 @@ join car_shop.marks m ON b.idMarka = m.idMarka
 group by m.marka, EXTRACT(YEAR FROM s."date")
 order by m.marka ASC, "price_avg" ASC;
 
-
---Посчитайте среднюю цену всех автомобилей с разбивкой по месяцам в 2022 году с учётом скидки.
---Результат отсортируйте по месяцам в восходящем порядке. 
---Среднюю цену округлите до второго знака после запятой.
+-- Посчитайте среднюю цену всех автомобилей с разбивкой по месяцам в 2022 году с учётом скидки.
+-- Результат отсортируйте по месяцам в восходящем порядке.
+-- Среднюю цену округлите до второго знака после запятой.
 select
-    extract(MONTH from date) as month,
-    extract(YEAR from date) as "year",
-    round(avg(price * (1 - discount / 100)), 2) as average_price
-from raw_data.sales
-where extract(YEAR from date) = 2022
-group by extract(MONTH from date), extract(YEAR from date)
+    extract(MONTH from s."date") as month,
+    extract(YEAR from s."date") as "year",
+    round(avg(s.price * (1 - s.discount / 100)), 2) as average_price
+from car_shop.sales s
+where extract(YEAR from s."date") = 2022
+group by extract(MONTH from s."date"), extract(YEAR from s."date")
 order by month asc;
 
    
