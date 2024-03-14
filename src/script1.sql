@@ -38,15 +38,17 @@ CREATE TABLE car_shop.brands (
     id SERIAL PRIMARY KEY, -- уникальный идентификатор, инкремент
     origin_id INT, -- идентификатор страны, ВК от origins
     brand VARCHAR(63) NOT NULL, -- бренд
-    FOREIGN KEY (origin_id) REFERENCES car_shop.origins(id)
+    FOREIGN KEY (origin_id) REFERENCES car_shop.origins(id),
+    UNIQUE (origin_id, brand)
 );
+
 
 CREATE TABLE car_shop.models (
 	id SERIAL PRIMARY KEY, -- уникальный идентификатор, инкремент
 	brand_id INT NOT NULL, -- идентификатор бренда, ВК от brands
 	model VARCHAR(63) NOT NULL, -- модель
-	gasoline_consumption DECIMAL(3,1),
-	FOREIGN KEY (brand_id) REFERENCES car_shop.brands(id)
+	gasoline_consumption DECIMAL(3,1) CHECK (gasoline_consumption >= 0.0 AND gasoline_consumption <= 99.9),
+	FOREIGN KEY (brand_id) REFERENCES car_shop.brands(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE car_shop.colors (
