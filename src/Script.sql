@@ -4,7 +4,7 @@
     auto varchar(40), 
     gasoline_consumption real,
     price real,
-    date_ date,
+    date date,
     person varchar(40),
     phone  varchar(40),
     discount smallint,
@@ -17,34 +17,19 @@
    -- real выбрано так как в данном случае высокая точность дробных чисел не нужна, достаточно всего нескольких знаков псле запятой.
    -- smallint для discount так как используются только сравнительно маленькие целые числа в диапазоне от 0 до 100
    
-COPY raw_data.sales(id, auto, gasoline_consumption, price, date_, person, phone, discount, brand_origin) FROM '\cars.csv' DELIMITER ',' CSV NULL 'null' HEADER;
+COPY raw_data.sales(id, auto, gasoline_consumption, price, date, person, phone, discount, brand_origin) FROM '\cars.csv' DELIMITER ',' CSV NULL 'null' HEADER;
 
 
 create schema car_shop;
-
-create table car_shop.auto(
-id serial primary key,
-auto_name varchar(20) not null
-);
 
 create table car_shop.color(
 id serial primary key,
 color_name varchar(10) not null
 );
 
-create table car_shop.brand_origin(
-id serial primary key, 
-brand_origin_name varchar(40)
-);
-
 create table car_shop.gasoline_consumption(
 id serial primary key,
-gasoline_consumption real
-);
-
-create table car_shop.date_(
-id serial primary key,
-date_ date not null
+consumption_value real
 );
 
 create table car_shop.clients(
@@ -60,98 +45,133 @@ price real not null,
 discount smallint
 );
 
-create table car_shop.auto_purchases(
-id serial primary key,
-auto_id integer,
-color_id integer,
-gasoline_consumption_id integer,
-price_with_discount_id integer,
-date_id integer,
-clients_id integer,
-brand_origin_id integer,
-foreign key (auto_id) references car_shop.auto(id),
-foreign key (color_id) references car_shop.color(id),
-foreign key (gasoline_consumption_id) references car_shop.gasoline_consumption(id),
-foreign key (price_with_discount_id) references car_shop.prices(id),
-foreign key (date_id) references car_shop.date_(id),
-foreign key (clients_id) references car_shop.clients(id),
-foreign key (brand_origin_id) references car_shop.brand_origin(id)
+CREATE TABLE car_shop.brand_origin (
+   id serial PRIMARY KEY,
+   brand_origin_name text
+);
+
+CREATE TABLE car_shop.brand (
+   id serial PRIMARY KEY,
+   brand_name text,
+   brand_origin_id integer,
+   FOREIGN KEY (brand_origin_id) REFERENCES car_shop.brand_origin(id)
+);
+
+CREATE TABLE car_shop.model (
+   id serial PRIMARY KEY,
+   brand_id integer,
+   model_name text NOT null,
+   FOREIGN KEY (brand_id) REFERENCES car_shop.brand(id)
 );
 
 
+CREATE TABLE car_shop.car (
+    id serial PRIMARY KEY,
+    brand_id integer,
+    model_id integer,
+    color_id integer,
+    gasoline_consumption_id integer,
+    FOREIGN KEY (brand_id) REFERENCES car_shop.brand(id),
+    FOREIGN KEY (model_id) REFERENCES car_shop.model(id),
+    FOREIGN KEY (color_id) REFERENCES car_shop.color(id),
+    FOREIGN KEY (gasoline_consumption_id) REFERENCES car_shop.gasoline_consumption(id)
+);
 
-INSERT INTO car_shop.auto(auto_name)
-SELECT DISTINCT split_part(auto, ', ', 1)
-FROM raw_data.sales;
+
+CREATE TABLE car_shop.purchase (
+    id serial PRIMARY KEY,
+    car_id integer,
+    clients_id integer,
+    purchase_date date NOT NULL,
+    price_id integer,
+    FOREIGN KEY (car_id) REFERENCES car_shop.car(id),
+    FOREIGN KEY (clients_id) REFERENCES car_shop.clients(id),
+    FOREIGN KEY (price_id) REFERENCES car_shop.prices(id)
+);
 
 INSERT INTO car_shop.color(color_name)
 SELECT DISTINCT split_part(auto, ', ', 2)
 FROM raw_data.sales;
 
-INSERT INTO car_shop.brand_origin (brand_origin_name)
-SELECT DISTINCT brand_origin
-FROM raw_data.sales;
-
-INSERT INTO car_shop.gasoline_consumption(gasoline_consumption)
+INSERT INTO car_shop.gasoline_consumption(consumption_value)
 SELECT DISTINCT gasoline_consumption
-FROM raw_data.sales;
-
-INSERT INTO car_shop.date_(date_)
-SELECT DISTINCT date_
 FROM raw_data.sales;
 
 INSERT INTO car_shop.prices (price, discount)
 SELECT price, discount
 FROM raw_data.sales;
 
+INSERT INTO car_shop.brand_origin ( brand_origin_name)
+SELECT distinct raw_data.sales.brand_origin 
+FROM raw_data.sales;
+
+INSERT INTO car_shop.brand(brand_origin_id,brand_name)
+SELECT DISTINCT car_shop.brand_origin.id  , split_part(auto, ' ', 1)
+FROM raw_data.sales
+join car_shop.brand_origin on car_shop.brand_origin.brand_origin_name  = raw_data.sales.brand_origin or (car_shop.brand_origin.brand_origin_name is null and raw_data.sales.brand_origin is null) ;
+
 INSERT INTO car_shop.clients (person, phone)
 select distinct person, phone
 FROM raw_data.sales;
 
+INSERT INTO car_shop.model(brand_id, model_name)
+SELECT distinct car_shop.brand.id, substring(split_part(auto, ', ', 1), strpos(split_part(auto, ', ', 1),' '), length(split_part(auto, ', ', 1)))
+FROM raw_data.sales
+join car_shop.brand on car_shop.brand.brand_name = split_part(auto, ' ', 1);
+
+INSERT INTO car_shop.car (brand_id, model_id, color_id, gasoline_consumption_id)
+select distinct car_shop.brand.id  , car_shop.model.id,  car_shop.color.id ,  car_shop.gasoline_consumption.id  
+FROM raw_data.sales
+JOIN car_shop.model ON car_shop.model.model_name = substring(split_part(auto, ', ', 1), strpos(split_part(auto, ', ', 1),' '), length(split_part(auto, ', ', 1)))
+join car_shop.brand on car_shop.brand.brand_name =  split_part(auto, ' ', 1)
+join car_shop.color on car_shop.color.color_name = split_part(auto, ', ', 2)
+join car_shop.gasoline_consumption on car_shop.gasoline_consumption.consumption_value = raw_data.sales.gasoline_consumption or (car_shop.gasoline_consumption.consumption_value is null and raw_data.sales.gasoline_consumption is null);
+
+INSERT INTO car_shop.purchase  (car_id, clients_id, purchase_date, price_id)
+select distinct car_shop.car.id , car_shop.clients.id, raw_data.sales."date" , car_shop.prices.id
+from raw_data.sales 
+join car_shop.clients on car_shop.clients.person = raw_data.sales.person and car_shop.clients.phone = raw_data.sales.phone 
+join car_shop.prices on car_shop.prices.price = raw_data.sales.price and car_shop.prices.discount = raw_data.sales.discount 
+join car_shop.car on car_shop.car.brand_id = (select id from car_shop.brand where car_shop.brand.brand_name = split_part(auto, ' ', 1))
+and car_shop.car.model_id = (select id from car_shop.model where car_shop.model.model_name = substring(split_part(auto, ', ', 1), strpos(split_part(auto, ', ', 1),' '), length(split_part(auto, ', ', 1)))) 
+and car_shop.car.color_id = (select id from car_shop.color where car_shop.color.color_name  = split_part(auto, ', ', 2)) 
+and car_shop.car.gasoline_consumption_id = (select id from car_shop.gasoline_consumption where car_shop.gasoline_consumption.consumption_value = raw_data.sales.gasoline_consumption or (car_shop.gasoline_consumption.consumption_value is null and raw_data.sales.gasoline_consumption is null)) ;
 
 
-INSERT INTO car_shop.auto_purchases(auto_id, color_id, gasoline_consumption_id, price_with_discount_id, date_id, clients_id, brand_origin_id)
-select car_shop.auto.id, car_shop.color.id, car_shop.gasoline_consumption.id, car_shop.prices.id, car_shop.date_.id, car_shop.clients.id, car_shop.brand_origin.id 
-FROM raw_data.sales 
-join car_shop.auto on split_part(raw_data.sales.auto, ', ', 1) = car_shop.auto.auto_name
-join car_shop.color on split_part(raw_data.sales.auto, ', ', 2) = car_shop.color.color_name
-join car_shop.gasoline_consumption on raw_data.sales.gasoline_consumption  = car_shop.gasoline_consumption.gasoline_consumption or (raw_data.sales.gasoline_consumption is null and  car_shop.gasoline_consumption.gasoline_consumption is null)
-join car_shop.date_ on raw_data.sales.date_  = car_shop.date_.date_
-join car_shop.brand_origin on raw_data.sales.brand_origin  = car_shop.brand_origin.brand_origin_name or (raw_data.sales.brand_origin  is null and car_shop.brand_origin.brand_origin_name is null)
-join car_shop.prices on raw_data.sales.price  = car_shop.prices.price and raw_data.sales.discount  = car_shop.prices.discount
-join car_shop.clients on raw_data.sales.person  = car_shop.clients.person  and raw_data.sales.phone  = car_shop.clients.phone  ;
 
 
 
 SELECT 
-  (COUNT(*) FILTER (WHERE car_shop.gasoline_consumption.gasoline_consumption is null ) * 100.0) / COUNT(*) AS nulls_percentage_gasoline_consumption
-FROM car_shop.auto_purchases join car_shop.gasoline_consumption on car_shop.gasoline_consumption.id = car_shop.auto_purchases.gasoline_consumption_id;
+  (COUNT(*) FILTER (WHERE car_shop.gasoline_consumption.consumption_value  is null ) * 100.0) / COUNT(*) AS nulls_percentage_gasoline_consumption 
+FROM car_shop.purchase 
+join car_shop.gasoline_consumption on (select gasoline_consumption_id from car_shop.car where car_shop.car.id = car_shop.purchase.car_id) = car_shop.gasoline_consumption.id  ;
 
 
-SELECT auto_name as brand_name, EXTRACT(year FROM date_) AS year, ROUND(AVG(price - discount)::numeric, 2) AS price_avg
-from car_shop.auto_purchases
-join car_shop.auto on car_shop.auto.id = car_shop.auto_purchases.auto_id 
-join car_shop.prices  on car_shop.prices.id = car_shop.auto_purchases.price_with_discount_id
-join car_shop.date_ on car_shop.date_.id  = car_shop.auto_purchases.date_id  
-GROUP BY brand_name, EXTRACT(year FROM date_)
+SELECT brand_name, EXTRACT(year FROM purchase_date) AS year, ROUND(AVG(price)::numeric, 2) AS price_avg
+from car_shop.purchase
+join car_shop.car on car_shop.car.id  = car_shop.purchase.car_id 
+join car_shop.brand on car_shop.car.brand_id = car_shop.brand.id  
+join car_shop.prices  on car_shop.prices.id = car_shop.purchase.price_id 
+GROUP BY brand_name, EXTRACT(year FROM purchase_date)
 ORDER BY brand_name, year;
 
 
-SELECT EXTRACT(month FROM date_) AS month,EXTRACT(year FROM date_) AS year, ROUND(AVG(price - discount)::numeric, 2) AS price_avg
-from car_shop.auto_purchases
-join car_shop.prices  on car_shop.prices.id = car_shop.auto_purchases.price_with_discount_id
-join car_shop.date_ on car_shop.date_.id  = car_shop.auto_purchases.date_id  
-where EXTRACT(year FROM date_) = 2022
-GROUP by EXTRACT(year FROM date_) ,EXTRACT(month FROM date_)
+SELECT EXTRACT(month FROM purchase_date) AS month,EXTRACT(year FROM purchase_date) AS year, ROUND(AVG(price - discount)::numeric, 2) AS price_avg
+from car_shop.purchase
+join car_shop.prices  on car_shop.prices.id = car_shop.purchase.price_id 
+where EXTRACT(year FROM purchase_date) = 2022
+GROUP by EXTRACT(year FROM purchase_date) ,EXTRACT(month FROM purchase_date)
 ORDER BY month;
 
 
 SELECT 
   person,
-  STRING_AGG(auto_name::character varying, ', ' ORDER BY auto_name) AS cars
-FROM car_shop.auto_purchases 
-join car_shop.auto on car_shop.auto.id = car_shop.auto_purchases.auto_id 
-join car_shop.clients on car_shop.clients.id  = car_shop.auto_purchases.clients_id 
+  STRING_AGG(concat(brand_name, ' ', model_name)::character varying, ', ') AS cars
+FROM car_shop.purchase
+join car_shop.car on car_shop.purchase.car_id  = car_shop.car.id 
+join car_shop.brand on car_shop.car.brand_id = car_shop.brand.id 
+join car_shop.model on car_shop.car.model_id = car_shop.model.id  
+join car_shop.clients on car_shop.clients.id  = car_shop.purchase.clients_id 
 GROUP BY person
 ORDER BY person;
 
@@ -161,17 +181,18 @@ SELECT
   brand_origin_name,
   MAX(price) AS price_max,
   MIN(price) AS price_min
-FROM car_shop.auto_purchases
-join car_shop.prices on car_shop.prices.id  = car_shop.auto_purchases.price_with_discount_id  
-join car_shop.brand_origin on car_shop.brand_origin.id  = car_shop.auto_purchases.brand_origin_id 
+FROM car_shop.purchase
+join car_shop.prices on car_shop.prices.id  = car_shop.purchase.price_id  
+join car_shop.car on car_shop.purchase.car_id  = car_shop.car.id
+join car_shop.brand on car_shop.car.brand_id = car_shop.brand.id  
+join car_shop.brand_origin on car_shop.brand.brand_origin_id = car_shop.brand_origin.id  
 GROUP BY brand_origin_name;
 
 
 
 SELECT 
-  COUNT(*) AS persons_from_usa_count
-FROM car_shop.auto_purchases
-join car_shop.clients on car_shop.clients.id = car_shop.auto_purchases.clients_id  
+  COUNT(*) AS persons_from_usa_count        
+FROM car_shop.purchase
+join car_shop.clients on car_shop.clients.id = car_shop.purchase.clients_id  
 WHERE phone LIKE '+1%';
-
 
